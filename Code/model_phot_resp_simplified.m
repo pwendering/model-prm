@@ -146,7 +146,7 @@ for i=1:numel(C_wt)
         uniq_tmp_c = unique(tmp_c);
         
         if numel(uniq_tmp_c)>1
-            fprintf('%s: %d unique fractions\n',tmp_enz_id,numel(uniq_tmp_c))
+            fprintf('%s: %d unique fractions\n',char(tmp_enz_id),numel(uniq_tmp_c))
         else
             C_wt{i} = uniq_tmp_c;
         end
