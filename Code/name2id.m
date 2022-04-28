@@ -85,6 +85,11 @@ mapping = {...
     'Fucose'                            ''
     'Mannose'                           ''
     'Nicotinate'                        ''
+    '2-Oxoglutarate'                    'KG'
+    'Sucrose'                           'Suc'
+    'Fumarate'                          'Fum'
+    'Oxaloacetate'                      'OAA'
+    'Threonine'                         'Thr'
     };
 
 ids = cell(numel(names),1);
