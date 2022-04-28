@@ -117,7 +117,10 @@ model.ub(findRxnIDs(model,'Im_hnu')) = I_ML;
 params.feasTol = 1e-9;
 step_1_solution = optimizeCbModel(model,'max','one',1,params);
 % perform FVA for wild type at 90% of optimal growth
-[minFluxWT,maxFluxWT] = fluxVariability(model,90);
+[minFluxWT,maxFluxWT] = fluxVariability(model,...
+    'optPercentage',90,...
+    'solverParams',params...
+    );
 
 % calculate C^wt = v / (kcat * E) for each reaction (per enzyme)
 fprintf('Calculating C_wt...\n')
@@ -367,7 +370,7 @@ for t_idx = 1:numel(tp)
         bio_ratio_rhs = step_1_solution.f;
         
         bio_ratio_sense = '=';
-               
+        
         % contrain v
         C_mut_min(isnan(C_mut_min)) = 0;
         C_mut_max(isnan(C_mut_max)) = 1;
@@ -484,71 +487,72 @@ for t_idx = 1:numel(tp)
                 );
         end
         
-        %% STEP 4 - Run flux variability analysis at optimal flux sum
-        % remove quadratic objective
-        problem_va = rmfield(problem,'Q');
-        % initialize linear objective
-        problem_va.obj = zeros(size(problem.A,2),1);
-        % add quadratic constraint to limit the sum of squared differences
-        % to the (sub-)optimal solution
-        problem_va.quadcon.Qc = sparse(size(problem.A,2),size(problem.A,2));
-        problem_va.quadcon.Qc(CDIM+1:end,CDIM+1:end) = speye(numel(COM_IDX));
-        problem_va.quadcon.rhs = sparse(1.1*step_2_solution.objval);
-        problem_va.quadcon.q = sparse(size(problem.A,2),1);
-        
-        % set LB for growth to 90% of optimum in previous step
-        problem_va.lb(model.c==1) = 0.9*step_2_solution.x(model.c==1);
-        
-        minFluxMUT = zeros(numel(COM_IDX),1);
-        maxFluxMUT = zeros(numel(COM_IDX),1);
-        fprintf('Starting variability analysis...\n')
-        for i=1:numel(COM_IDX)
-            if i > 1 && mod(i,1000)==1
-                fprintf('Processed %d reactions ...\n',i-1)
+        if contains(step_2_solution.status,'OPTIMAL')
+            %% STEP 4 - Run flux variability analysis at optimal flux sum
+            % remove quadratic objective
+            problem_va = rmfield(problem,'Q');
+            % initialize linear objective
+            problem_va.obj = zeros(size(problem.A,2),1);
+            % add quadratic constraint to limit the sum of squared differences
+            % to the (sub-)optimal solution
+            problem_va.quadcon.Qc = sparse(size(problem.A,2),size(problem.A,2));
+            problem_va.quadcon.Qc(CDIM+1:end,CDIM+1:end) = speye(numel(COM_IDX));
+            problem_va.quadcon.rhs = sparse(1.1*step_2_solution.objval);
+            problem_va.quadcon.q = sparse(size(problem.A,2),1);
+            
+            % set LB for growth to 90% of optimum in previous step
+            problem_va.lb(model.c==1) = 0.9*step_2_solution.x(model.c==1);
+            
+            minFluxMUT = zeros(numel(COM_IDX),1);
+            maxFluxMUT = zeros(numel(COM_IDX),1);
+            fprintf('Starting variability analysis...\n')
+            for i=1:numel(COM_IDX)
+                if i > 1 && mod(i,1000)==1
+                    fprintf('Processed %d reactions ...\n',i-1)
+                end
+                tmp_problem = problem_va;
+                % maximization
+                tmp_problem.obj(COM_IDX(i)) = -1;
+                sol = gurobi(tmp_problem,params);
+                if contains(sol.status,'OPTIMAL')
+                    maxFluxMUT(i) = sol.x(COM_IDX(i));
+                end
+                
+                % minimization
+                tmp_problem.obj(COM_IDX(i)) = 1;
+                sol = gurobi(tmp_problem,params);
+                if contains(sol.status,'OPTIMAL')
+                    minFluxMUT(i) = sol.x(COM_IDX(i));
+                end
             end
-           tmp_problem = problem_va;
-           % maximization
-           tmp_problem.obj(COM_IDX(i)) = -1;
-           sol = gurobi(tmp_problem,params);
-           if contains(sol.status,'OPTIMAL')
-               maxFluxMUT(i) = sol.x(COM_IDX(i));
-           end
-           
-           % minimization
-           tmp_problem.obj(COM_IDX(i)) = 1;
-           sol = gurobi(tmp_problem,params);
-           if contains(sol.status,'OPTIMAL')
-               minFluxMUT(i) = sol.x(COM_IDX(i));
-           end
-        end
-        
-        % find non-overlapping reactions
-        non_overlapping = false(numel(COM_IDX),1);
-        for i=1:numel(COM_IDX)  
-            if minFluxMUT(i) > maxFluxWT(COM_IDX(i)) + 1e-8
-                non_overlapping(i) = 1;
-            elseif minFluxWT(COM_IDX(i)) > maxFluxMUT(i) + 1e-8
-                non_overlapping(i) = 1;
+            
+            % find non-overlapping reactions
+            non_overlapping = false(numel(COM_IDX),1);
+            for i=1:numel(COM_IDX)
+                if minFluxMUT(i) > maxFluxWT(COM_IDX(i)) + 1e-8
+                    non_overlapping(i) = 1;
+                elseif minFluxWT(COM_IDX(i)) > maxFluxMUT(i) + 1e-8
+                    non_overlapping(i) = 1;
+                end
             end
-        end
-        
-        writetable(...
-            [cell2table(...
+            
+            writetable(...
+                [cell2table(...
                 [model.rxns(COM_IDX(non_overlapping)),...
                 model.rxnNames(COM_IDX(non_overlapping)),...
                 model.subSystems(COM_IDX(non_overlapping))],...
                 'VariableNames', {'ReactionID','ReactionName','ReactionSubSystem'}...
-            ),...
-            array2table(...
+                ),...
+                array2table(...
                 [minFluxWT(COM_IDX(non_overlapping)) maxFluxWT(COM_IDX(non_overlapping)),...
                 minFluxMUT(non_overlapping) maxFluxMUT(non_overlapping)],...
                 'VariableNames', {...
-                    'minFluxWT','maxFluxWT','minFluxMUT','maxFluxMUT'...
+                'minFluxWT','maxFluxWT','minFluxMUT','maxFluxMUT'...
                 })],...
-            [res_dir filesep 'diff_rxns_' mutants{m_idx} ...
+                [res_dir filesep 'diff_rxns_' mutants{m_idx} ...
                 't_' num2str(tp(t_idx)) ...
                 '_' l_conds{l_idx} '.csv']...
-            );
-        
+                );
+        end
     end
 end
