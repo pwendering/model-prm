@@ -5,7 +5,13 @@
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% initCobraToolbox(false)
+% initialize COBRA
+initCobraToolbox(false)
+
+% set up parallel pool
+delete(gcp('nocreate'));
+parpool(20);
+
 
 % define output directory
 res_dir = '../Results';
