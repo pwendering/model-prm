@@ -7,6 +7,9 @@
 
 % initCobraToolbox(false)
 
+% define output directory
+res_dir = '../Results';
+
 %% Read data
 
 data_dir = '../Data';
@@ -36,6 +39,14 @@ ENZ_MET_IDX = find(...
     startsWith(model.mets,'prot_') &...
     ~contains(model.mets, 'prot_pool')...
     );
+fprintf('Setting sigma to 1 for GECKO model\n')
+model.ub(findRxnIDs(model,'prot_pool_exchange')) = ...
+    2*model.ub(findRxnIDs(model,'prot_pool_exchange'));
+
+% set objective to light-limiting biomass reaction
+model.c(:) = 0;
+model.c(findRxnIDs(model,'Bio_opt')) = 1;
+model.ub(findRxnIDs(model,{'Bio_CLim','Bio_NLim'})) = 0;
 
 % dry weights
 dw = readtable(...
@@ -99,8 +110,11 @@ model.ub(findRxnIDs(model,'Im_hnu')) = I_ML;
 % solve FBA problem and minimize sum of fluxes using first norm
 params.feasTol = 1e-9;
 step_1_solution = optimizeCbModel(model,'max','one',1,params);
+% perform FVA for wild type at 90% of optimal growth
+[minFluxWT,maxFluxWT] = fluxVariability(model,90);
 
 % calculate C^wt = v / (kcat * E) for each reaction (per enzyme)
+fprintf('Calculating C_wt...\n')
 C_wt = cell(numel(RXN_IDX),1);
 
 for i=1:numel(C_wt)
@@ -133,7 +147,16 @@ for i=1:numel(C_wt)
         
     end
 end
-C_wt(cellfun(@isempty,C_wt)) = {0};
+fprintf('-\tC_wt could not be determined for %d reactions (%d%%)\n',...
+    sum(cellfun(@isempty,C_wt)),...
+    round(100*sum(cellfun(@isempty,C_wt))/numel(C_wt),0))
+fprintf('-\t%d reactions have C_wt == 0\n',...
+    sum(cell2mat(cellfun(@(x)x==0,C_wt,'un',0))))
+fprintf('-\t%d reactions have C_wt == 1\n',...
+    sum(cell2mat(cellfun(@(x)x==1,C_wt,'un',0))))
+fprintf('-\t%d reactions have 0 < C_wt < 1\n',...
+    sum(cell2mat(cellfun(@(x)x>0&x<1,C_wt,'un',0))))
+C_wt(cellfun(@isempty,C_wt)) = {NaN};
 C_wt = cell2mat(C_wt);
 
 l_idx = 1;
@@ -288,14 +311,16 @@ for t_idx = 1:numel(tp)
             end
         end
         
-        %% Step 3 - calculate range for C^mut
+        %% Step 2 - calculate range for C^mut
         C_mut_min = zeros(numel(RXN_IDX),1);
         C_mut_max = zeros(numel(RXN_IDX),1);
         for i=1:numel(RXN_IDX)
-            C_mut_min(i) = C_wt(i) / ...
-                ( ( B_wt_min(i) / B_mut_min(i) ) * ( 1 - C_wt(i) ) + C_wt(i) );
-            C_mut_max(i) = C_wt(i) / ...
-                ( ( B_wt_max(i) / B_mut_max(i) ) * ( 1 - C_wt(i) ) + C_wt(i) );
+            if ~isnan(C_wt(i)) && C_wt(i) < 1
+                C_mut_min(i) = C_wt(i) / ...
+                    ( ( B_wt_min(i) / B_mut_min(i) ) * ( 1 - C_wt(i) ) + C_wt(i) );
+                C_mut_max(i) = C_wt(i) / ...
+                    ( ( B_wt_max(i) / B_mut_max(i) ) * ( 1 - C_wt(i) ) + C_wt(i) );
+            end
         end
         
         % find reactions for which minimum is greater than maximum
@@ -304,7 +329,7 @@ for t_idx = 1:numel(tp)
             fprintf('%s has  C_mut_min > C_mut_max\n',err_rxns{i})
         end
         
-        %% Step 4 - obtain final flux distributions for mutant and wild type
+        %% Step 3 - obtain flux distributions for mutant and wild type
         [RDIM,CDIM] = size(model.S);
         
         % constraints
@@ -344,7 +369,9 @@ for t_idx = 1:numel(tp)
             ~isnan(C_mut_max) & ...
             C_mut_max > 0 & ...
             C_mut_max > C_mut_min & ...
-            abs(C_mut_max-C_mut_min) >= 0.2;
+            abs(C_mut_max-C_mut_min) >= 0.1;
+        
+        fprintf('%d valid values for C_mut\n',sum(valid_idx))
         
         C_mut_lhs = zeros(2*sum(valid_idx),CDIM+numel(COM_IDX));
         row_counter = 0;
@@ -373,19 +400,14 @@ for t_idx = 1:numel(tp)
         
         C_mut_sense = repelem('<',row_counter,1);
         
-        
         % combine constraint matrices
         problem = struct;
         
-%         problem.A = [st_st_lhs; bio_ratio_lhs; norm_2_lhs; C_mut_lhs];
-%         problem.rhs = [st_st_rhs; bio_ratio_rhs; norm_2_rhs; C_mut_rhs];
-%         problem.sense = [st_st_sense; bio_ratio_sense; norm_2_sense; C_mut_sense];
+        problem.A = [st_st_lhs; bio_ratio_lhs; norm_2_lhs; C_mut_lhs];
+        problem.rhs = [st_st_rhs; bio_ratio_rhs; norm_2_rhs; C_mut_rhs];
+        problem.sense = [st_st_sense; bio_ratio_sense; norm_2_sense; C_mut_sense];
         
-        problem.A = [st_st_lhs; norm_2_lhs];
-        problem.rhs = [st_st_rhs; norm_2_rhs];
-        problem.sense = [st_st_sense; norm_2_sense];
-        
-        problem.lb = [model.lb; zeros(numel(COM_IDX),1)];
+        problem.lb = [model.lb; -repelem(1000,numel(COM_IDX),1)];
         problem.lb(findRxnIDs(model,ko_rxns{m_idx})) = 0;
         
         problem.ub = [model.ub; repelem(1000,numel(COM_IDX),1)];
@@ -404,14 +426,28 @@ for t_idx = 1:numel(tp)
             );
         
         % solve LP using gurobi
-        solution = gurobi(problem,params);
+        step_2_solution = gurobi(problem,params);
         
-        if ~contains(solution.status,'OPTIMAL')
-            fprintf('Solver status: %s\n', solution.status)
+        if ~contains(step_2_solution.status,'OPTIMAL')
+            fprintf('Solver status: %s\n', step_2_solution.status)
         else
-            
+            fprintf('Solution found (%s).\n',step_2_solution.status)
+            phot_rxns = {'arm_RBC_h' 'arm_RBO_h' 'Tr_CO2m_REV'};
+            A_pred_wt = [1 -0.5 -1] * step_1_solution.x(findRxnIDs(model,phot_rxns));
+            A_pred_mt = [1 -0.5 -1] * step_2_solution.x(findRxnIDs(model,phot_rxns));
+            fprintf(...
+                'CO2 assimilation rates [umol/m2/s]: WT: %.4g %s: %.4g\n',...
+                1000*LMA*A_pred_wt / 3600,... mmol/gDW/h => umol/m2/s
+                mutants{m_idx},...
+                1000*LMA*A_pred_mt / 3600 ...
+                )
+            fprintf('Oxygenation fluxes: [mmol/gDW/h]: WT: %.4g %s: %.4g\n',...
+                step_1_solution.x(findRxnIDs(model,'arm_RBO_h')),...
+                mutants{m_idx},...
+                step_2_solution.x(findRxnIDs(model,'arm_RBO_h'))...
+                )
             % rank reactions by distance
-            rxn_dist = solution.x(end-numel(COM_IDX)+1:end);
+            rxn_dist = step_2_solution.x(end-numel(COM_IDX)+1:end);
             [rxn_dist_sorted,rxn_dist_order] = sort(rxn_dist,'descend');
             rxns_by_dist = model.rxns(COM_IDX(rxn_dist_order));
             subsyst_by_dist = model.subSystems(COM_IDX(rxn_dist_order));
@@ -422,22 +458,86 @@ for t_idx = 1:numel(tp)
             % write results to file
             writetable(...
                 [cell2table(...
-                [model.rxns(COM_IDX),...
-                model.rxnNames(COM_IDX),...
-                model.subSystems(COM_IDX)],...
+                [model.rxns(COM_IDX(rxn_dist_order)),...
+                model.rxnNames(COM_IDX(rxn_dist_order)),...
+                model.subSystems(COM_IDX(rxn_dist_order))],...
                 'VariableNames', {'RXN_ID', 'RXN_NAME', 'SUBSYSTEM'}...
                 ),...
                 array2table(...
                 [rxn_dist_sorted,...
-                step_1_solution.x(COM_IDX),...
-                solution.x(COM_IDX)],...
+                step_1_solution.x(COM_IDX(rxn_dist_order)),...
+                step_2_solution.x(COM_IDX(rxn_dist_order))],...
                 'VariableNames', {'dist','wt_flux','mut_flux'}...
                 )],...
-                ['flux_dist_norm_2_' mutants{m_idx} ...
+                [res_dir filesep 'flux_dist_norm_2_' mutants{m_idx} ...
                 't_' num2str(tp(t_idx)) ...
                 '_' l_conds{l_idx} '.csv'],...
                 'WriteRowNames', true...
                 );
         end
+        
+        %% STEP 4 - Run flux variability analysis at optimal flux sum
+        % remove quadratic objective
+        problem_va = rmfield(problem,'Q');
+        % initialize linear objective
+        problem_va.obj = zeros(size(problem.A,2),1);
+        % add quadratic constraint to limit the sum of squared differences
+        % to the (sub-)optimal solution
+        problem_va.quadcon.Qc = sparse(size(problem.A,2),size(problem.A,2));
+        problem_va.quadcon.Qc(CDIM+1:end,CDIM+1:end) = speye(numel(COM_IDX));
+        problem_va.quadcon.rhs = sparse(1.1*step_2_solution.objval);
+        problem_va.quadcon.q = sparse(size(problem.A,2),1);
+        
+        % set LB for growth to 90% of optimum in previous step
+        problem_va.lb(model.c==1) = 0.9*step_2_solution.x(model.c==1);
+        
+        minFluxMUT = zeros(numel(COM_IDX),1);
+        maxFluxMUT = zeros(numel(COM_IDX),1);
+        fprintf('Starting variability analysis...\n')
+        for i=1:numel(COM_IDX)
+            if i > 1 && mod(i,1000)==1
+                fprintf('Processed %d reactions ...\n',i-1)
+            end
+           tmp_problem = problem_va;
+           % maximization
+           tmp_problem.obj(COM_IDX(i)) = -1;
+           sol = gurobi(tmp_problem,params);
+           if contains(sol.status,'OPTIMAL')
+               maxFluxMUT(i) = sol.x(COM_IDX(i));
+           end
+           
+           % minimization
+           tmp_problem.obj(COM_IDX(i)) = 1;
+           sol = gurobi(tmp_problem,params);
+           if contains(sol.status,'OPTIMAL')
+               minFluxMUT(i) = sol.x(COM_IDX(i));
+           end
+        end
+        
+        % find non-overlapping reactions
+        non_overlapping = false(numel(COM_IDX),1);
+        for i=1:numel(COM_IDX)  
+            if minFluxMUT(i) > maxFluxWT(COM_IDX(i)) + 1e-6
+                non_overlapping(i) = 1;
+            elseif minFluxWT(COM_IDX(i)) > maxFluxMUT(i) + 1e-6
+                non_overlapping(i) = 1;
+            end
+        end
+        
+        writetable(...
+            [cell2table(...
+                model.rxns(COM_IDX(non_overlapping)),...
+                model.rxnNames(COM_IDX(non_overlapping)),...
+                'VariableNames', {'ReactionID','ReactionName'}...
+            ),...
+            array2table(...
+                minFluxWT(COM_IDX(non_overlapping)) maxFluxWT(COM_IDX(non_overlapping)),...
+                minFluxMUT(COM_IDX(non_overlapping))
+            )],...
+            [res_dir filesep 'diff_rxns_' mutants{m_idx} ...
+                't_' num2str(tp(t_idx)) ...
+                '_' l_conds{l_idx} '.csv']...
+            );
+        
     end
 end
