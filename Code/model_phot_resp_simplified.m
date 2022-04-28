@@ -32,7 +32,7 @@ max_conc_limit = max(max(met_ranges{:,2:end}));
 
 % metabolic model (GECKO-formatted model of AraCore model)
 % model reference: Arnold and Nikoloski (2014), doi: 10.1104/pp.114.235358
-model = readCbModel('../../GECKO/models/ecAraCoreModel/raw_batch_ecModel.mat');
+model = readCbModel(fullfile(data_dir,'raw_batch_ecModel.mat'));
 RXN_IDX = find(~startsWith(model.rxns,{'draw_','prot_'}));
 DRAW_RXN_IDX = startsWith(model.rxns,'draw_');
 ENZ_MET_IDX = find(...
