@@ -174,7 +174,7 @@ for t_idx = 1:numel(tp)
     cmdsz = matlab.desktop.commandwindow.size;
     fprintf([repmat('-',1,cmdsz(1)) '\n'])
     fprintf('Time after shift: %d\n', tp(t_idx))
-    parfor m_idx = 1:numel(mutants)
+    for m_idx = 1:numel(mutants)
         
         cmdsz = matlab.desktop.commandwindow.size;
         fprintf([repmat('-',1,floor(cmdsz(1)/2)) '\n'])
@@ -506,7 +506,7 @@ for t_idx = 1:numel(tp)
             minFluxMUT = zeros(numel(COM_IDX),1);
             maxFluxMUT = zeros(numel(COM_IDX),1);
             fprintf('Starting variability analysis...\n')
-            for i=1:numel(COM_IDX)
+            parfor i=1:numel(COM_IDX)
                 if i > 1 && mod(i,1000)==1
                     fprintf('Processed %d reactions ...\n',i-1)
                 end
