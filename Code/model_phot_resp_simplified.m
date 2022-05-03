@@ -81,6 +81,9 @@ t_growth = 34 * 24; % [h]
 % calculate growth rate
 dw_0 = 20 / 1e6;
 mu = (log(dw.mean_DW) - log(dw_0)) ./ t_growth;
+mu_wt = mu(strcmp(dw.Properties.RowNames,'Col0'));
+
+mu(mu>mu_wt) = mu_wt;
 
 % define mutant names and reaction knock-outs
 mutants = {...
@@ -148,7 +151,7 @@ for t_idx = 1:numel(tp)
         end
         
         % determine ratio of growth rates (wt/mutant)
-        biomass_ratio = mu(strcmp(dw.Properties.RowNames,'Col0')) / ...
+        biomass_ratio = mu_wt / ...
             mu(strcmp(dw.Properties.RowNames,mutants{m_idx}));
         
         % calculate B (derived from Michaelis-Menten rate law for multiple substrates)
