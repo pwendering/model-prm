@@ -169,7 +169,7 @@ for t_idx = 1:numel(tp)
         range_data.met_range_sd = met_range_sd;
         range_data.min_conc_limit = min_conc_limit;
         range_data.max_conc_limit = max_conc_limit;
-
+        
         [B_wt_min,B_wt_mean,B_wt_max,B_mut_min,B_mut_mean,B_mut_max] = calculateB(...
             model, exp_data, range_data, mutants{m_idx}, tp(t_idx));
         
@@ -305,36 +305,37 @@ for t_idx = 1:numel(tp)
         % solve LP using gurobi
         moma_solution = gurobi(problem,params);
         
-        % calculate ratio B_wt / B_mut
-        % B = C / (1-C)
-        B_wt_pfba = C_wt ./ (1-C_wt);
-        
-        C_mut_moma = calculateVBykE(model,moma_solution.x);
-        B_mut_moma = C_mut_moma ./ (1-C_mut_moma);
-        
-        % compare C_mut (MOMA) with C_mut limits from metbolite data
-        fig = figure('Visible','off');
-        tiledlayout('flow')
-        
-        nexttile
-        hold on
-        scatter(C_mut_moma,C_mut_min,'^','k','filled')
-        scatter(C_mut_moma,C_mut_max,'v','k','filled');
-        scatter(C_mut_moma,C_mut_mean,'.','r')
-        xlabel('C_{mut} (MOMA)', 'FontSize', 14)
-        ylabel('C_{mut} (calc.)','FontSize', 14)
-        legend({'C_{mut}^{min}', 'C_{mut}^{max}', 'C_{mut}^{mean}'},'Location','best',...
-            'Box', 'off', 'FontSize', 12)
-        
-        nexttile
-        scatter(C_mut_moma,C_wt,20,'k','filled')
-        xlabel('C_{mut} (MOMA)', 'FontSize', 14)
-        ylabel('C_{WT} (pFBA)','FontSize', 14)
-        
-        exportgraphics(fig,[res_dir filesep 'C_values_' mutants{m_idx} ...
+        if contains(moma_solution.status,'OPTIMAL')
+            % calculate ratio B_wt / B_mut
+            % B = C / (1-C)
+            B_wt_pfba = C_wt ./ (1-C_wt);
+            
+            C_mut_moma = calculateVBykE(model,moma_solution.x);
+            B_mut_moma = C_mut_moma ./ (1-C_mut_moma);
+            
+            % compare C_mut (MOMA) with C_mut limits from metbolite data
+            fig = figure('Visible','off');
+            tiledlayout('flow')
+            
+            nexttile
+            hold on
+            scatter(C_mut_moma,C_mut_min,'^','k','filled')
+            scatter(C_mut_moma,C_mut_max,'v','k','filled');
+            scatter(C_mut_moma,C_mut_mean,'.','r')
+            xlabel('C_{mut} (MOMA)', 'FontSize', 14)
+            ylabel('C_{mut} (calc.)','FontSize', 14)
+            legend({'C_{mut}^{min}', 'C_{mut}^{max}', 'C_{mut}^{mean}'},'Location','best',...
+                'Box', 'off', 'FontSize', 12)
+            
+            nexttile
+            scatter(C_mut_moma,C_wt,20,'k','filled')
+            xlabel('C_{mut} (MOMA)', 'FontSize', 14)
+            ylabel('C_{WT} (pFBA)','FontSize', 14)
+            
+            exportgraphics(fig,[res_dir filesep 'C_values_' mutants{m_idx} ...
                 't_' num2str(tp(t_idx)) ...
                 '_' l_conds{l_idx} '.png']);
-            
+        end
         % 2) including constraints from metabolite abundances
         problem = struct;
         
