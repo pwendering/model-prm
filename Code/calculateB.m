@@ -1,5 +1,5 @@
-function [B_wt_min,B_wt_max,B_mut_min,B_mut_max] = calculateB(model, exp_data, range_data, mut_id, tp)
-%% [B_wt_min,B_wt_max,B_mut_min,B_mut_max] = calculateB(model, exp_data, range_data, mut_id, tp)
+function [B_wt_min,B_wt_mean,B_wt_max,B_mut_min,B_mut_mean,B_mut_max] = calculateB(model, exp_data, range_data, mut_id, tp)
+%% [B_wt_min,B_wt_mean,B_wt_max,B_mut_min,B_mut_mean,B_mut_max] = calculateB(model, exp_data, range_data, mut_id, tp)
 % Calculate ratio based on Michaelis-Menten kinetics for each reaction i:
 % 
 % B = prod( (x_ij / KM_ij ) ^ alpha_ij), 
@@ -31,7 +31,7 @@ function [B_wt_min,B_wt_max,B_mut_min,B_mut_max] = calculateB(model, exp_data, r
 %   double tp:
 %       time point after shift [-21 3 27 75 123]
 % OUTPUT:
-%   double B_wt_min, B_wt_max, B_mut_min, B_mut_max: 
+%   double B_wt_min, B_wt_mean, B_wt_max, B_mut_min, B_mut_mean, B_mut_max: 
 %       minimum and maximum values B for wild-type and mutant
 
 % Col-0 is wild type
@@ -51,8 +51,10 @@ rxn_idx = getRxnEnzIdx(model);
 
 % initialize output arrays
 B_wt_min = zeros(numel(rxn_idx),1);
+B_wt_mean = zeros(numel(rxn_idx),1);
 B_wt_max = zeros(numel(rxn_idx),1);
 B_mut_min = zeros(numel(rxn_idx),1);
+B_mut_mean = zeros(numel(rxn_idx),1);
 B_mut_max = zeros(numel(rxn_idx),1);
 for i=1:numel(rxn_idx)
     
@@ -131,11 +133,13 @@ for i=1:numel(rxn_idx)
     conc_max = concs+sd;
     conc_max(isnan(conc_max)) = max_conc_limit;
     
-    B_wt_min(i) = round(prod(((conc_min) ./ KM ) .^ rxn_met_coeff),4);
-    B_wt_max(i) = round(prod(((conc_max) ./ KM ) .^ rxn_met_coeff),4);
+    B_wt_min(i) = prod((conc_min ./ KM ) .^ rxn_met_coeff);
+    B_wt_mean(i) = prod((concs ./ KM ) .^ rxn_met_coeff);
+    B_wt_max(i) = prod((conc_max ./ KM ) .^ rxn_met_coeff);
     
     if arm_rxn_idx > 0
         B_wt_min(arm_rxn_idx) = B_wt_min(i);
+        B_wt_mean(arm_rxn_idx) = B_wt_mean(i);
         B_wt_max(arm_rxn_idx) = B_wt_max(i);
     end
     
@@ -167,11 +171,13 @@ for i=1:numel(rxn_idx)
     conc_max = concs+sd;
     conc_max(isnan(conc_max)) = max_conc_limit;
     
-    B_mut_min(i) = prod(((conc_min) ./ KM ) .^ rxn_met_coeff);
-    B_mut_max(i) = prod(((conc_max) ./ KM ) .^ rxn_met_coeff);
+    B_mut_min(i) = prod((conc_min ./ KM ) .^ rxn_met_coeff);
+    B_mut_mean(i) = prod((concs ./ KM ) .^ rxn_met_coeff);
+    B_mut_max(i) = prod((conc_max ./ KM ) .^ rxn_met_coeff);
     
     if arm_rxn_idx > 0
         B_mut_min(arm_rxn_idx) = B_mut_min(i);
+        B_mut_mean(arm_rxn_idx) = B_mut_mean(i);
         B_mut_max(arm_rxn_idx) = B_mut_max(i);
     end
 end
