@@ -170,16 +170,19 @@ for t_idx = 1:numel(tp)
         range_data.min_conc_limit = min_conc_limit;
         range_data.max_conc_limit = max_conc_limit;
 
-        [B_wt_min,B_wt_max,B_mut_min,B_mut_max] = calculateB(...
+        [B_wt_min,B_wt_mean,B_wt_max,B_mut_min,B_mut_mean,B_mut_max] = calculateB(...
             model, exp_data, range_data, mutants{m_idx}, tp(t_idx));
         
         %% Step 2 - calculate range for C^mut
-        C_mut_min = zeros(numel(RXN_IDX),1);
-        C_mut_max = zeros(numel(RXN_IDX),1);
+        C_mut_min = nan(numel(RXN_IDX),1);
+        C_mut_mean = nan(numel(RXN_IDX),1);
+        C_mut_max = nan(numel(RXN_IDX),1);
         for i=1:numel(RXN_IDX)
             if ~isnan(C_wt(i)) && C_wt(i) < 1
                 C_mut_min(i) = C_wt(i) / ...
                     ( ( B_wt_min(i) / B_mut_min(i) ) * ( 1 - C_wt(i) ) + C_wt(i) );
+                C_mut_mean(i) = C_wt(i) / ...
+                    ( ( B_wt_mean(i) / B_mut_mean(i) ) * ( 1 - C_wt(i) ) + C_wt(i) );
                 C_mut_max(i) = C_wt(i) / ...
                     ( ( B_wt_max(i) / B_mut_max(i) ) * ( 1 - C_wt(i) ) + C_wt(i) );
             end
@@ -301,22 +304,28 @@ for t_idx = 1:numel(tp)
         B_mut_moma = C_mut_moma ./ (1-C_mut_moma);
         
         % compare C_mut (MOMA) with C_mut limits from metbolite data
+        fig = figure('Visible','off');
         tiledlayout('flow')
         
         nexttile
         hold on
-        scatter(C_mut_moma,C_mut_min,80,'r','filled')
-        scatter(C_mut_moma,C_mut_max,'b','filled');
+        scatter(C_mut_moma,C_mut_min,'^','k','filled')
+        scatter(C_mut_moma,C_mut_max,'v','k','filled');
+        scatter(C_mut_moma,C_mut_mean,'.','r')
         xlabel('C_{mut} (MOMA)', 'FontSize', 14)
         ylabel('C_{mut} (calc.)','FontSize', 14)
-        legend({'C_{mut}^{min}', 'C_{mut}^{max}'},'Location','best',...
+        legend({'C_{mut}^{min}', 'C_{mut}^{max}', 'C_{mut}^{mean}'},'Location','best',...
             'Box', 'off', 'FontSize', 14)
         
         nexttile
-        scatter(C_mut_moma,C_wt,50,'k','filled')
+        scatter(C_mut_moma,C_wt,20,'k','filled')
         xlabel('C_{mut} (MOMA)', 'FontSize', 14)
         ylabel('C_{WT} (pFBA)','FontSize', 14)
         
+        exportgraphics(fig,[res_dir filesep 'C_values_' mutants{m_idx} ...
+                't_' num2str(tp(t_idx)) ...
+                '_' l_conds{l_idx} '.png']);
+            
         % 2) including constraints from metabolite abundances
         problem = struct;
         
