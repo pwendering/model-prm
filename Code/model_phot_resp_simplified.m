@@ -9,9 +9,8 @@
 initCobraToolbox(false)
 
 % set up parallel pool
-delete(gcp('nocreate'));
-parpool(20);
-
+% delete(gcp('nocreate'));
+% parpool(20);
 
 % define output directory
 res_dir = '../Results';
@@ -106,9 +105,6 @@ l_conds = {'ml','fl','ml_fl','fl_ml'};
 % time points
 tp = [-21 3 27 75 123];
 
-% generic KM value
-KM = 1;
-
 %% Step 1 - minimize total flux with GECKO model
 fprintf('Setting photon uptake to 200 umol/m2/s\n')
 model.ub(findRxnIDs(model,'Im_hnu')) = I_ML;
@@ -124,49 +120,7 @@ step_1_solution = optimizeCbModel(model,'max','one',1,params);
 
 % calculate C^wt = v / (kcat * E) for each reaction (per enzyme)
 fprintf('Calculating C_wt...\n')
-C_wt = cell(numel(RXN_IDX),1);
-
-for i=1:numel(C_wt)
-    
-    tmp_rxn_idx = RXN_IDX(i);
-    
-    if step_1_solution.x(tmp_rxn_idx) ~= 0
-        tmp_enz_idx = find(model.S(ENZ_MET_IDX,tmp_rxn_idx) < 0);
-        tmp_c = zeros(numel(tmp_enz_idx),1);
-        
-        for j=1:numel(tmp_enz_idx)
-            tmp_enz_id = erase(...
-                model.mets(ENZ_MET_IDX(tmp_enz_idx(j))),...
-                'prot_'...
-                );
-            tmp_draw_rxn_idx = endsWith(model.rxns,tmp_enz_id);
-            tmp_c(j) = ...
-                step_1_solution.x(tmp_rxn_idx) / ... % v [mmol/gDW/h]
-                (-1/model.S(ENZ_MET_IDX(tmp_enz_idx(j)),tmp_rxn_idx)) / ... % kcat [/h]
-                step_1_solution.x(tmp_draw_rxn_idx); % E [mmol/gDW]
-        end
-        
-        uniq_tmp_c = unique(tmp_c);
-        
-        if numel(uniq_tmp_c)>1
-            fprintf('%s: %d unique fractions\n',char(tmp_enz_id),numel(uniq_tmp_c))
-        else
-            C_wt{i} = uniq_tmp_c;
-        end
-        
-    end
-end
-fprintf('-\tC_wt could not be determined for %d reactions (%d%%)\n',...
-    sum(cellfun(@isempty,C_wt)),...
-    round(100*sum(cellfun(@isempty,C_wt))/numel(C_wt),0))
-fprintf('-\t%d reactions have C_wt == 0\n',...
-    sum(cell2mat(cellfun(@(x)x==0,C_wt,'un',0))))
-fprintf('-\t%d reactions have C_wt == 1\n',...
-    sum(cell2mat(cellfun(@(x)x==1,C_wt,'un',0))))
-fprintf('-\t%d reactions have 0 < C_wt < 1\n',...
-    sum(cell2mat(cellfun(@(x)x>0&x<1,C_wt,'un',0))))
-C_wt(cellfun(@isempty,C_wt)) = {NaN};
-C_wt = cell2mat(C_wt);
+C_wt = calculateVBykE(model,step_1_solution.x);
 
 l_idx = 1;
 
@@ -204,122 +158,20 @@ for t_idx = 1:numel(tp)
         meas_names = met_av.Properties.VariableNames(3:end);
         meas_ids = name2id(meas_names);
         
-        B_wt_min = zeros(numel(RXN_IDX),1);
-        B_wt_max = zeros(numel(RXN_IDX),1);
-        B_mut_min = zeros(numel(RXN_IDX),1);
-        B_mut_max = zeros(numel(RXN_IDX),1);
-        for i=1:numel(RXN_IDX)
-            rxn_met_idx = find(...
-                model.S(:,RXN_IDX(i)) ~= 0 & ...
-                ~contains(model.mets, 'prot_')...
-                );
-            rxn_mets = model.mets(rxn_met_idx);
-            
-            if any(contains(rxn_mets,'pmet_'))
-                tmp_pmet_idx = rxn_met_idx(contains(rxn_mets,'pmet_'));
-                pmet_coeff = model.S(tmp_pmet_idx,RXN_IDX(i));
-                if pmet_coeff < 0
-                    % pmet is consumed, find substrates of arm reaction
-                    arm_rxn_idx = find(model.S(tmp_pmet_idx,:) > 0);
-                    adj_mets = model.mets(any(model.S(:,arm_rxn_idx) < 0,2));
-                else
-                    % pmet is produced, find products consuming reaction
-                    arm_rxn_idx = find(model.S(tmp_pmet_idx,:) < 0);
-                    adj_mets = model.mets(any(model.S(:,arm_rxn_idx) > 0,2));
-                end
-            else
-                arm_rxn_idx = 0;
-                adj_mets = {};
-            end
-            % remove pmet from reaction metabolites
-            rxn_met_idx = rxn_met_idx(~contains(rxn_mets,'pmet_'));
-            rxn_met_idx = [rxn_met_idx; findMetIDs(model,adj_mets)];
-            
-            rxn_mets = rxn_mets(~contains(rxn_mets,'pmet_'));
-            rxn_mets = [rxn_mets; adj_mets];
-            
-            % stoichiometric coefficients
-            rxn_met_coeff = full(model.S(rxn_met_idx,RXN_IDX(i)));
-            
-            % find match in measured data from current experiment
-            trunc_mets = regexprep(rxn_mets,'_\w$','');
-            meas_match = ismember(trunc_mets, meas_ids);
-            
-            % find match in dataset
-            range_match = ismember(trunc_mets, range_ids);
-            range_match(meas_match) = false;
-            
-            % initialize concentrations
-            concs = nan(numel(rxn_mets),1);
-            sd = nan(numel(rxn_mets),1);
-            
-            % wild type (Col-0)
-            concs(meas_match) = met_av{...
-                met_av.time==tp(t_idx) & strcmp(met_av.genotype,'Col-0'),...
-                2+cellfun(@(x)find(ismember(meas_ids, x)),trunc_mets(meas_match))...
-                };
-            sd(meas_match) = met_sd{...
-                met_av.time==tp(t_idx) & strcmp(met_av.genotype,'Col-0'),...
-                2+cellfun(@(x)find(ismember(meas_ids, x)),trunc_mets(meas_match))...
-                };
-            
-            concs(range_match) = met_range_av(...
-                cellfun(@(x)find(ismember(range_ids, x)),trunc_mets(range_match))...
-                );
-            sd(range_match) = met_range_sd(...
-                cellfun(@(x)find(ismember(range_ids, x)),trunc_mets(range_match))...
-                );
-            
-            conc_min = concs-sd;
-            conc_min(isnan(conc_min)|conc_min<0) = min_conc_limit;
-            
-            conc_max = concs+sd;
-            conc_max(isnan(conc_max)) = max_conc_limit;
-            
-            B_wt_min(i) = round(prod(((conc_min) ./ KM ) .^ rxn_met_coeff),4);
-            B_wt_max(i) = round(prod(((conc_max) ./ KM ) .^ rxn_met_coeff),4);
-            
-            if arm_rxn_idx > 0
-                B_wt_min(arm_rxn_idx) = B_wt_min(i);
-                B_wt_max(arm_rxn_idx) = B_wt_max(i);
-            end
-            
-            % mutant
-            
-            % initialize concentrations
-            concs = nan(numel(rxn_mets),1);
-            sd = nan(numel(rxn_mets),1);
-            
-            concs(meas_match) = met_av{...
-                met_av.time==tp(t_idx) & strcmp(met_av.genotype,mutants{m_idx}),...
-                2+cellfun(@(x)find(ismember(meas_ids, x)),trunc_mets(meas_match))...
-                };
-            sd(meas_match) = met_sd{...
-                met_av.time==tp(t_idx) & strcmp(met_av.genotype,mutants{m_idx}),...
-                2+cellfun(@(x)find(ismember(meas_ids, x)),trunc_mets(meas_match))...
-                };
-            
-            concs(range_match) = met_range_av(...
-                cellfun(@(x)find(ismember(range_ids, x)),trunc_mets(range_match))...
-                );
-            sd(range_match) = met_range_sd(...
-                cellfun(@(x)find(ismember(range_ids, x)),trunc_mets(range_match))...
-                );
-            
-            conc_min = concs-sd;
-            conc_min(isnan(conc_min)|conc_min<0) = min_conc_limit;
-            
-            conc_max = concs+sd;
-            conc_max(isnan(conc_max)) = max_conc_limit;
-            
-            B_mut_min(i) = round(prod(((conc_min) ./ KM ) .^ rxn_met_coeff),4);
-            B_mut_max(i) = round(prod(((conc_max) ./ KM ) .^ rxn_met_coeff),4);
-            
-            if arm_rxn_idx > 0
-                B_mut_min(arm_rxn_idx) = B_mut_min(i);
-                B_mut_max(arm_rxn_idx) = B_mut_max(i);
-            end
-        end
+        exp_data = struct;
+        exp_data.meas_ids = meas_ids;
+        exp_data.met_av = met_av;
+        exp_data.met_sd = met_sd;
+        
+        range_data = struct;
+        range_data.range_ids = range_ids;
+        range_data.met_range_av = met_range_av;
+        range_data.met_range_sd = met_range_sd;
+        range_data.min_conc_limit = min_conc_limit;
+        range_data.max_conc_limit = max_conc_limit;
+
+        [B_wt_min,B_wt_max,B_mut_min,B_mut_max] = calculateB(...
+            model, exp_data, range_data, mutants{m_idx}, tp(t_idx));
         
         %% Step 2 - calculate range for C^mut
         C_mut_min = zeros(numel(RXN_IDX),1);
@@ -410,7 +262,62 @@ for t_idx = 1:numel(tp)
         
         C_mut_sense = repelem('<',row_counter,1);
         
-        % combine constraint matrices
+        % construct QCP
+        
+        % 1) without constraints from metabolite abundances
+        problem = struct;
+        
+        problem.A = [st_st_lhs; bio_ratio_lhs; norm_2_lhs];
+        problem.rhs = [st_st_rhs; bio_ratio_rhs; norm_2_rhs];
+        problem.sense = [st_st_sense; bio_ratio_sense; norm_2_sense];
+        
+        problem.lb = [model.lb; -repelem(1000,numel(COM_IDX),1)];
+        problem.lb(findRxnIDs(model,ko_rxns{m_idx})) = 0;
+        
+        problem.ub = [model.ub; repelem(1000,numel(COM_IDX),1)];
+        problem.ub(findRxnIDs(model,ko_rxns{m_idx})) = 0;
+        
+        % objective
+        problem.Q = sparse(CDIM+numel(COM_IDX),CDIM+numel(COM_IDX));
+        problem.Q(CDIM+1:end, CDIM+1:end) = speye(numel(COM_IDX));
+        
+        % set solver parameters
+        params = struct(...
+            'Threads', 1,...
+            'OutputFlag', 0,...
+            'FeasibilityTol', 1e-9,...
+            'NumericFocus', 3,...
+            'BarCorrectors', 10000 ...
+            );
+        
+        % solve LP using gurobi
+        moma_solution = gurobi(problem,params);
+        
+        % calculate ratio B_wt / B_mut
+        % B = C / (1-C)
+        B_wt_pfba = C_wt ./ (1-C_wt);
+        
+        C_mut_moma = calculateVBykE(model,moma_solution.x);
+        B_mut_moma = C_mut_moma ./ (1-C_mut_moma);
+        
+        % compare C_mut (MOMA) with C_mut limits from metbolite data
+        tiledlayout('flow')
+        
+        nexttile
+        hold on
+        scatter(C_mut_moma,C_mut_min,80,'r','filled')
+        scatter(C_mut_moma,C_mut_max,'b','filled');
+        xlabel('C_{mut} (MOMA)', 'FontSize', 14)
+        ylabel('C_{mut} (calc.)','FontSize', 14)
+        legend({'C_{mut}^{min}', 'C_{mut}^{max}'},'Location','best',...
+            'Box', 'off', 'FontSize', 14)
+        
+        nexttile
+        scatter(C_mut_moma,C_wt,50,'k','filled')
+        xlabel('C_{mut} (MOMA)', 'FontSize', 14)
+        ylabel('C_{WT} (pFBA)','FontSize', 14)
+        
+        % 2) including constraints from metabolite abundances
         problem = struct;
         
         problem.A = [st_st_lhs; bio_ratio_lhs; norm_2_lhs; C_mut_lhs];
