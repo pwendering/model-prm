@@ -1,0 +1,9 @@
+function [rxn_idx, enz_idx] = getRxnEnzIdx(model)
+% metabolic reactions
+rxn_idx = find(~startsWith(model.rxns,{'draw_','prot_'}));
+% enzyme draw reactions
+enz_idx = find(...
+    startsWith(model.mets,'prot_') &...
+    ~contains(model.mets, 'prot_pool')...
+    );
+end
