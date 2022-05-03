@@ -28,7 +28,7 @@ met_ranges = readtable(...
     );
 met_range_av = mean(met_ranges{:,2:end},2,'omitnan');
 met_range_sd = std(met_ranges{:,2:end},0,2,'omitnan');
-met_range_sd(met_range_sd==0) = 0.1*met_range_av(met_range_sd==0);
+met_range_sd(met_range_sd==0) = 0.3*met_range_av(met_range_sd==0);
 range_met_names = met_ranges.Properties.RowNames;
 range_ids = name2id(range_met_names);
 
@@ -173,12 +173,20 @@ for t_idx = 1:numel(tp)
         [B_wt_min,B_wt_mean,B_wt_max,B_mut_min,B_mut_mean,B_mut_max] = calculateB(...
             model, exp_data, range_data, mutants{m_idx}, tp(t_idx));
         
+        ignore_rxns = {'protein','carbohydrate','lipid','Bio_AA'};
+        B_wt_min(findRxnIDs(model,ignore_rxns)) = NaN;
+        B_wt_mean(findRxnIDs(model,ignore_rxns)) = NaN;
+        B_wt_max(findRxnIDs(model,ignore_rxns)) = NaN;
+        B_mut_min(findRxnIDs(model,ignore_rxns)) = NaN;
+        B_mut_mean(findRxnIDs(model,ignore_rxns)) = NaN;
+        B_mut_max(findRxnIDs(model,ignore_rxns)) = NaN;
+        
         %% Step 2 - calculate range for C^mut
         C_mut_min = nan(numel(RXN_IDX),1);
         C_mut_mean = nan(numel(RXN_IDX),1);
         C_mut_max = nan(numel(RXN_IDX),1);
         for i=1:numel(RXN_IDX)
-            if ~isnan(C_wt(i)) && C_wt(i) < 1
+            if C_wt(i) < 1
                 C_mut_min(i) = C_wt(i) / ...
                     ( ( B_wt_min(i) / B_mut_min(i) ) * ( 1 - C_wt(i) ) + C_wt(i) );
                 C_mut_mean(i) = C_wt(i) / ...
@@ -227,14 +235,15 @@ for t_idx = 1:numel(tp)
         bio_ratio_sense = '=';
         
         % contrain v
-        C_mut_min(isnan(C_mut_min)) = 0;
-        C_mut_max(isnan(C_mut_max)) = 1;
+        nan_c_max = isnan(C_mut_max);
+        C_mut_max(nan_c_max&~isnan(C_mut_min)) = 1;
+        C_mut_min(isnan(C_mut_min)&~nan_c_max) = 0;
         
         valid_idx = ...
             ~isnan(C_mut_max) & ...
+            ~isnan(C_mut_min) & ...
             C_mut_max > 0 & ...
-            C_mut_max > C_mut_min & ...
-            abs(C_mut_max-C_mut_min) >= 0.1;
+            C_mut_max >= C_mut_min; % & abs(C_mut_max-C_mut_min) >= 0.1;
         
         fprintf('%d valid values for C_mut\n',sum(valid_idx))
         
@@ -315,7 +324,7 @@ for t_idx = 1:numel(tp)
         xlabel('C_{mut} (MOMA)', 'FontSize', 14)
         ylabel('C_{mut} (calc.)','FontSize', 14)
         legend({'C_{mut}^{min}', 'C_{mut}^{max}', 'C_{mut}^{mean}'},'Location','best',...
-            'Box', 'off', 'FontSize', 14)
+            'Box', 'off', 'FontSize', 12)
         
         nexttile
         scatter(C_mut_moma,C_wt,20,'k','filled')

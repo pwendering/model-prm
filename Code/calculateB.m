@@ -44,7 +44,7 @@ KM = 1;
 [meas_ids, met_av, met_sd] = deal(exp_data.meas_ids, exp_data.met_av, exp_data.met_sd);
 [range_ids, met_range_av, met_range_sd, min_conc_limit, max_conc_limit] = ...
     deal(range_data.range_ids, range_data.met_range_av, range_data.met_range_sd,...
-    range_data.max_conc_limit, range_data.min_conc_limit);
+    range_data.min_conc_limit, range_data.max_conc_limit);
 
 % get indices of metabolic reactions
 rxn_idx = getRxnEnzIdx(model);
