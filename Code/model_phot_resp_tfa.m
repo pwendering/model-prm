@@ -99,7 +99,7 @@ if any(model.lb<-100) || any(model.ub>100)
 end
 
 %% Load the thermodynamics database
-tmp = load('thermo_data.mat');
+tmp = load(fullfile(data_dir, 'thermo_data.mat'));
 ReactionDB = tmp.DB_AlbertyUpdate;
 clear tmp
 
