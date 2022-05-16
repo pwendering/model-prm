@@ -1,13 +1,22 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % Modeling of photorespiratory mutants using TFA
+% using the matTFA toolbox
+%   Reference: Salvy et al. (2019), doi: 10.1093/bioinformatics/bty499
+%
+% Github Fork: https://github.com/pwendering/matTFA
+%
 % Philipp Wendering, University of Potsdam (philipp.wendering@gmail.com)
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 clear;clc
 
-% basic variables
-NCPU=4;
+% number of workers for parallel computing
+NCPU = 4;
+
+% define data and output directory
+data_dir = '../Data';
+res_dir = '../Results';
 
 % set up parallel pool
 delete(gcp('nocreate'));
@@ -22,15 +31,11 @@ addpath(genpath(cplexPath))
 changeCobraSolver('ibm_cplex')
 
 % path to matTFA toolbox
-mattfa_path = fullfile('..','..','mattfa');
-
+mattfa_path = fullfile('..','..','matTFA');
 addpath(genpath(fullfile(mattfa_path,'matTFA')))
 addpath(genpath(fullfile(mattfa_path,'thermoDatabases')))
 addpath(genpath(fullfile(mattfa_path,'models')))
 addpath(genpath(fullfile(mattfa_path,'plotting')))
-
-% define output directory
-res_dir = '../Results';
 
 %% Load the model
 % metabolic model (updated metabolite names and added inchi keys)
@@ -232,7 +237,6 @@ this_tmodel = addNetFluxVariables(tmp);
 NF_idx = getAllVar(this_tmodel,{'NF'});
 
 %% Read experimental data
-data_dir = '../Data';
 data_dir_struct = dir(data_dir);
 data_files = {data_dir_struct.name};
 
@@ -300,13 +304,12 @@ ko_rxns = {...
     {'GCEADH_p','GCEADH_h'}...
     };
 
-% light conditions
+% light conditions and photon uptake upper bounds
 l_conds = {'ml','fl','ml_fl','fl_ml'};
+ph_ub = [I_ML I_FL];
 
 % time points
 tp = [-21 3 27 75 123];
-
-l_idx = 1;
 
 %% dry weight to volume conversion
 % weight increases linearly with volume
@@ -340,281 +343,288 @@ for t_idx = 1:numel(tp)
         fprintf([repmat('-',1,floor(cmdsz(1)/2)) '\n'])
         fprintf('>>> Processing genotype %s ...\n', mutants{m_idx})
         
-        % test if growth is possible with knock-outs
-        ko_model = removeRxns(model,ko_rxns{m_idx});
-        g_ko = optimizeCbModel(ko_model).f;
-        g_wt = optimizeCbModel(model).f;
-        gt_bool = g_ko > 0;
-        if gt_bool
-            fprintf('Growth test passed\n')
-            fprintf('FBA results: WT: %.4e, %s: %.4e\n', g_ko, mutants{m_idx}, g_wt)
-        else
-            fprintf('KO disables growth prediction - skipping\n')
-            continue
-        end
-        
-        % determine ratio of growth rates (wt/mutant)
-        biomass_ratio = mu_wt / ...
-            mu(strcmp(dw.Properties.RowNames,mutants{m_idx}));
-        
-        %% get metabolite concentration ranges
-        met_av = readtable(fullfile(data_dir, ['met_' l_conds{l_idx} '.csv']));
-        met_av_mut = met_av{strcmp(met_av.genotype,mutants{m_idx})&met_av.time==tp(t_idx),3:end};
-        met_av_wt = met_av{strcmp(met_av.genotype,'Col-0')&met_av.time==tp(t_idx),3:end};
-        met_sd = readtable(fullfile(data_dir, ['met_' l_conds{l_idx} '_sd.csv']));
-        met_sd_mut = met_sd{strcmp(met_av.genotype,mutants{m_idx})&met_av.time==tp(t_idx),3:end};
-        met_sd_wt= met_sd{strcmp(met_av.genotype,'Col-0')&met_av.time==tp(t_idx),3:end};
-        
-        meas_names = met_av.Properties.VariableNames(3:end);
-        meas_ids = name2id(meas_names);
-        
-        % remove data for unmatched metabolites
-        nm_idx = cellfun(@isempty,meas_ids);
-        met_av_mut = met_av_mut(~nm_idx);
-        met_av_wt = met_av_wt(~nm_idx);
-        met_sd_mut = met_sd_mut(~nm_idx);
-        met_sd_wt = met_sd_wt(~nm_idx);
-        meas_ids = meas_ids(~nm_idx);
-        
-        meas_mw = zeros(size(meas_ids));
-        for i=1:numel(meas_ids)
-            first_idx = find(contains(model.mets,[meas_ids{i} '[']),1);
-            meas_mw(i) = getMolecularMass(model.metFormulas(first_idx)); % [mol/gDW]
-        end
-        
-        meas_conc_min_mut = met_av_mut - met_sd_mut;
-        meas_conc_min_wt = met_av_wt - met_sd_wt;
-        meas_conc_max_mut = met_av_mut + met_sd_mut;
-        meas_conc_max_wt = met_av_wt + met_sd_wt;
-        
-        meas_conc_min_mut = meas_conc_min_mut' * dw_per_l ./ meas_mw; % [M]
-        meas_conc_min_wt = meas_conc_min_wt' * dw_per_l ./ meas_mw; % [M]
-        meas_conc_max_mut = meas_conc_max_mut' * dw_per_l ./ meas_mw; % [M]
-        meas_conc_max_wt = meas_conc_max_wt' * dw_per_l ./ meas_mw; % [M]
-        
-        
-        meas_conc_min_mut(meas_conc_min_mut<0) = min(model.CompartmentData.compMinConc);
-        meas_conc_min_wt(meas_conc_min_wt<0) = min(model.CompartmentData.compMinConc);
-        
-        % match measured concentrations to LC variables in TFA model
-        varnames = strcat(...
-            'LC_',...
-            regexprep(...
-            model.mets(startsWith(model.mets,strcat(meas_ids(~cellfun(@isempty,meas_ids)),'['))),...
-            '(.*)\[(\w)\]$',...
-            '$1_$2'...
-            )...
-            );
-        LC_varNames = varnames(ismember(varnames,this_tmodel.varNames));
-        C_lb_mut = zeros(size(LC_varNames));
-        C_lb_wt = zeros(size(LC_varNames));
-        C_ub_mut = zeros(size(LC_varNames));
-        C_ub_wt = zeros(size(LC_varNames));
-        
-        for i=1:numel(meas_ids)
-            meas_id_match = ismember(regexprep(LC_varNames,'LC_(.*)_\w','$1'),meas_ids(i));
-            if sum(meas_id_match)>0
-                
-                C_lb_mut(meas_id_match) = meas_conc_min_mut(i);
-                C_lb_wt(meas_id_match) = meas_conc_min_wt(i);
-                
-                C_ub_mut(meas_id_match) = meas_conc_max_mut(i);
-                C_ub_wt(meas_id_match) = meas_conc_max_wt(i);
+        for l_idx = 1:numel(ph_ub)
+            fprintf('[[ I = %d umol/m2/s ]]\n',ph_ub(l_idx)*1000*LMA/3600)
+            model.ub(findRxnIDs(model,'Im_hnu')) = ph_ub(l_idx);
+            this_tmodel.var_ub(strcmp(this_tmodel.varNames,'U_Im_hnu')) = ph_ub(l_idx);
+            
+            % test if growth is possible with knock-outs
+            ko_model = removeRxns(model,ko_rxns{m_idx});
+            g_ko = optimizeCbModel(ko_model).f;
+            g_wt = optimizeCbModel(model).f;
+            gt_bool = g_ko > 0;
+            if gt_bool
+                fprintf('Growth test passed\n')
+                fprintf('FBA results: WT: %.4e, %s: %.4e\n', g_ko, mutants{m_idx}, g_wt)
             else
-                fprintf('%s not found in model variables\n',meas_ids{i})
+                fprintf('KO disables growth prediction - skipping\n')
+                continue
             end
-        end
-        
-        % find the indices of these variables in the variable names of the tfa
-        id_LC_varNames = find_cell(LC_varNames, this_tmodel.varNames);
-        
-        %% Solve TFA for wild type model
-        wt_tmodel = this_tmodel;
-        
-        % add relaxed metabolite concentration ranges to measured
-        % metabolites
-        wt_tmodel = addRelaxedMetConcRanges(wt_tmodel,LC_varNames,log(C_lb_wt),log(C_ub_wt));
-        
-        % add minimization objective for relaxation variables
-        wt_tmodel.f(startsWith(wt_tmodel.varNames,'EPS_')) = -1;
-        
-        % solve TFA
-        tfa_wt = solveTFAmodelCplex(wt_tmodel);
-        
-        % WT optimal growth rate
-        wt_opt = tfa_wt.x(wt_tmodel.f==1);
-        
-        % positive and negative concentration relaxations
-        eps_minus = tfa_wt.x(startsWith(wt_tmodel.varNames,'EPS_MINUS'));
-        eps_plus = tfa_wt.x(startsWith(wt_tmodel.varNames,'EPS_PLUS'));
-        ch_conc_idx = eps_minus>1e-4 | eps_plus>1e-4;
-        
-        % (relaxed) TFA metabolite concentrations
-        met_conc = tfa_wt.x(cellfun(@(x)find(ismember(wt_tmodel.varNames,x)),...
-            LC_varNames));
-        
-        % create figure with updated metabolite concentration ranges
-        tmp_fig = figure('Visible','off');
-        tiledlayout(2,1)
-        nexttile
-        labels = categorical(erase(strrep(LC_varNames,'_','\_'),'LC_'));
-        arrayfun(@(i)line([labels(i) labels(i)],[C_lb_wt(i) C_ub_wt(i)],'linewidth',4,'color','k'),1:numel(LC_varNames))
-        hold on
-        h = zeros(2,1);
-        h(1)=scatter(labels(~ch_conc_idx),exp(met_conc(~ch_conc_idx)),15,'filled');
-        h(2)=scatter(labels(ch_conc_idx),exp(met_conc(ch_conc_idx)),15,'filled');
-        hold off
-        set(gca,'YScale','log','FontSize',10)
-        legend(h,{'unchanged','relaxed'},'FontSize',14,'box','off',...
-            'location','southeast')
-        ylabel('TFA metabolite concentration [M]','FontSize',14)
-        text(0.01,0.95,'Col-0','units','normalized','fontweight','bold')
-        
-        % fix metabolite measured metabolite concentrations to newly
-        % obtained values with 10% tolerance
-        wt_tmodel.var_lb(cellfun(@(x)find(ismember(wt_tmodel.varNames,x)),...
-            LC_varNames)) = met_conc-abs(.1*(met_conc));
-        wt_tmodel.var_ub(cellfun(@(x)find(ismember(wt_tmodel.varNames,x)),...
-            LC_varNames)) = met_conc+abs(.1*(met_conc));
-        
-        % set lower bound for biomass to 90% of optimal value
-        wt_tmodel.var_lb(wt_tmodel.f==1) = 0.9*wt_opt;
-        
-        % Run tva with the data
-        if ~isempty(tfa_wt.x)
-            tva_wt = runTMinMax(wt_tmodel, wt_tmodel.varNames(NF_idx));
-        end
-        
-        %% solve TFA for mutant model
-        mut_tmodel = this_tmodel;
-        mut_tmodel.var_lb(ismember(mut_tmodel.varNames,strcat('NF_', ko_rxns{m_idx}))) = 0;
-        mut_tmodel.var_ub(ismember(mut_tmodel.varNames,strcat('NF_', ko_rxns{m_idx}))) = 0;
-        
-        % run FVA for mutant model
-        mut_model = model;
-        mut_model.lb(ismember(mut_model.rxns,ko_rxns{m_idx})) = 0;
-        mut_model.ub(ismember(mut_model.rxns,ko_rxns{m_idx})) = 0;
-        fva_mut = runMinMax(mut_model);
-        is_bd_fva_mut = (n(fva_mut));
-        
-        % add biomass ratio constraint
-        mut_tmodel.var_ub(mut_tmodel.f==1) = wt_opt / biomass_ratio + 1e-10;
-        mut_tmodel.var_lb(mut_tmodel.f==1) = wt_opt / biomass_ratio - 1e-10;
-        
-        % add relaxed metabolite concentration ranges to measured
-        % metabolites
-        mut_tmodel = addRelaxedMetConcRanges(mut_tmodel,LC_varNames,log(C_lb_wt),log(C_ub_wt));
-        
-        % add minimization objective for relaxation variables
-        mut_tmodel.f(startsWith(mut_tmodel.varNames,'EPS_')) = -1e-3;
-        
-        % solve TFA
-        tfa_mut = solveTFAmodelCplex(mut_tmodel);
-        
-        % positive and negative concentration relaxations
-        eps_minus = tfa_mut.x(startsWith(mut_tmodel.varNames,'EPS_MINUS'));
-        eps_plus = tfa_mut.x(startsWith(mut_tmodel.varNames,'EPS_PLUS'));
-        ch_conc_idx = eps_minus>1e-4 | eps_plus>1e-4;
-        
-        % (relaxed) TFA metabolite concentrations
-        met_conc = tfa_mut.x(cellfun(@(x)find(ismember(mut_tmodel.varNames,x)),...
-            LC_varNames));
-        
-        % add second panel to figure
-        nexttile
-        labels = categorical(erase(strrep(LC_varNames,'_','\_'),'LC_'));
-        arrayfun(@(i)line([labels(i) labels(i)],[C_lb_mut(i) C_ub_mut(i)],'linewidth',4,'color','k'),1:numel(LC_varNames))
-        hold on
-        h = zeros(2,1);
-        h(1)=scatter(labels(~ch_conc_idx),exp(met_conc(~ch_conc_idx)),15,'filled');
-        h(2)=scatter(labels(ch_conc_idx),exp(met_conc(ch_conc_idx)),15,'filled');
-        hold off
-        set(gca,'YScale','log','FontSize',10)
-        legend(h,{'unchanged','relaxed'},'FontSize',14,'box','off',...
-            'location','southeast')
-        ylabel('TFA metabolite concentration [M]','FontSize',14)
-        text(0.01,0.95,['{\it ' mutants{m_idx} '}'],'units','normalized','fontweight','bold')
-        set(tmp_fig,'Outerposition',1000*[1.5297   -0.2063    1.5507    0.9347])
-        
-        exportgraphics(tmp_fig,[res_dir filesep 'metabolite_concentration_' mutants{m_idx} ...
-            '_timepoint_' num2str(tp(t_idx)) '.png'])
-        
-        % fix metabolite measured metabolite concentrations to newly
-        % obtained values with 10% tolerance
-        mut_tmodel.var_lb(cellfun(@(x)find(ismember(mut_tmodel.varNames,x)),...
-            LC_varNames)) = met_conc-abs(.1*(met_conc));
-        mut_tmodel.var_ub(cellfun(@(x)find(ismember(mut_tmodel.varNames,x)),...
-            LC_varNames)) = met_conc+abs(.1*(met_conc));
-        
-        % fix biomass flux between 90% and 100% of mutant growth
-        mut_tmodel.var_lb(mut_tmodel.f==1) = 0.9*(wt_opt / biomass_ratio) - 1e-10;
-        
-        % Run tva with the data
-        if ~isempty(tfa_mut.x)
-            tva_mut = runTMinMax(mut_tmodel, mut_tmodel.varNames(NF_idx));
-        end
-        
-        %% find non-overlapping reactions between wild type and mutant
-        nf_idx = find(startsWith(wt_tmodel.varNames,'NF_'));
-        non_overlapping = false(numel(nf_idx),1);
-        for i=1:numel(nf_idx)
-            if tva_mut(i,1) > tva_wt(i,2) + 1e-8
-                non_overlapping(i) = 1;
-            elseif tva_wt(i,1) > tva_mut(i,2) + 1e-8
-                non_overlapping(i) = 1;
+            
+            % determine ratio of growth rates (wt/mutant)
+            biomass_ratio = mu_wt / ...
+                mu(strcmp(dw.Properties.RowNames,mutants{m_idx}));
+            
+            %% get metabolite concentration ranges
+            met_av = readtable(fullfile(data_dir, ['met_' l_conds{l_idx} '.csv']));
+            met_av_mut = met_av{strcmp(met_av.genotype,mutants{m_idx})&met_av.time==tp(t_idx),3:end};
+            met_av_wt = met_av{strcmp(met_av.genotype,'Col-0')&met_av.time==tp(t_idx),3:end};
+            met_sd = readtable(fullfile(data_dir, ['met_' l_conds{l_idx} '_sd.csv']));
+            met_sd_mut = met_sd{strcmp(met_av.genotype,mutants{m_idx})&met_av.time==tp(t_idx),3:end};
+            met_sd_wt= met_sd{strcmp(met_av.genotype,'Col-0')&met_av.time==tp(t_idx),3:end};
+            
+            meas_names = met_av.Properties.VariableNames(3:end);
+            meas_ids = name2id(meas_names);
+            
+            % remove data for unmatched metabolites
+            nm_idx = cellfun(@isempty,meas_ids);
+            met_av_mut = met_av_mut(~nm_idx);
+            met_av_wt = met_av_wt(~nm_idx);
+            met_sd_mut = met_sd_mut(~nm_idx);
+            met_sd_wt = met_sd_wt(~nm_idx);
+            meas_ids = meas_ids(~nm_idx);
+            
+            meas_mw = zeros(size(meas_ids));
+            for i=1:numel(meas_ids)
+                first_idx = find(contains(model.mets,[meas_ids{i} '[']),1);
+                meas_mw(i) = getMolecularMass(model.metFormulas(first_idx)); % [mol/gDW]
             end
+            
+            meas_conc_min_mut = met_av_mut - met_sd_mut;
+            meas_conc_min_wt = met_av_wt - met_sd_wt;
+            meas_conc_max_mut = met_av_mut + met_sd_mut;
+            meas_conc_max_wt = met_av_wt + met_sd_wt;
+            
+            meas_conc_min_mut = meas_conc_min_mut' * dw_per_l ./ meas_mw; % [M]
+            meas_conc_min_wt = meas_conc_min_wt' * dw_per_l ./ meas_mw; % [M]
+            meas_conc_max_mut = meas_conc_max_mut' * dw_per_l ./ meas_mw; % [M]
+            meas_conc_max_wt = meas_conc_max_wt' * dw_per_l ./ meas_mw; % [M]
+            
+            
+            meas_conc_min_mut(meas_conc_min_mut<0) = min(model.CompartmentData.compMinConc);
+            meas_conc_min_wt(meas_conc_min_wt<0) = min(model.CompartmentData.compMinConc);
+            
+            % match measured concentrations to LC variables in TFA model
+            varnames = strcat(...
+                'LC_',...
+                regexprep(...
+                model.mets(startsWith(model.mets,strcat(meas_ids(~cellfun(@isempty,meas_ids)),'['))),...
+                '(.*)\[(\w)\]$',...
+                '$1_$2'...
+                )...
+                );
+            LC_varNames = varnames(ismember(varnames,this_tmodel.varNames));
+            C_lb_mut = zeros(size(LC_varNames));
+            C_lb_wt = zeros(size(LC_varNames));
+            C_ub_mut = zeros(size(LC_varNames));
+            C_ub_wt = zeros(size(LC_varNames));
+            
+            for i=1:numel(meas_ids)
+                meas_id_match = ismember(regexprep(LC_varNames,'LC_(.*)_\w','$1'),meas_ids(i));
+                if sum(meas_id_match)>0
+                    
+                    C_lb_mut(meas_id_match) = meas_conc_min_mut(i);
+                    C_lb_wt(meas_id_match) = meas_conc_min_wt(i);
+                    
+                    C_ub_mut(meas_id_match) = meas_conc_max_mut(i);
+                    C_ub_wt(meas_id_match) = meas_conc_max_wt(i);
+                else
+                    fprintf('%s not found in model variables\n',meas_ids{i})
+                end
+            end
+            
+            % find the indices of these variables in the variable names of the tfa
+            id_LC_varNames = find_cell(LC_varNames, this_tmodel.varNames);
+            
+            %% Solve TFA for wild type model
+            wt_tmodel = this_tmodel;
+            
+            % add relaxed metabolite concentration ranges to measured
+            % metabolites
+            wt_tmodel = addRelaxedMetConcRanges(wt_tmodel,LC_varNames,log(C_lb_wt),log(C_ub_wt));
+            
+            % add minimization objective for relaxation variables
+            wt_tmodel.f(startsWith(wt_tmodel.varNames,'EPS_')) = -1;
+            
+            % solve TFA
+            tfa_wt = solveTFAmodelCplex(wt_tmodel);
+            
+            % WT optimal growth rate
+            wt_opt = tfa_wt.x(wt_tmodel.f==1);
+            
+            % positive and negative concentration relaxations
+            eps_minus = tfa_wt.x(startsWith(wt_tmodel.varNames,'EPS_MINUS'));
+            eps_plus = tfa_wt.x(startsWith(wt_tmodel.varNames,'EPS_PLUS'));
+            ch_conc_idx = eps_minus>1e-4 | eps_plus>1e-4;
+            
+            % (relaxed) TFA metabolite concentrations
+            met_conc = tfa_wt.x(cellfun(@(x)find(ismember(wt_tmodel.varNames,x)),...
+                LC_varNames));
+            
+            % create figure with updated metabolite concentration ranges
+            tmp_fig = figure('Visible','off');
+            tiledlayout(2,1)
+            nexttile
+            labels = categorical(erase(strrep(LC_varNames,'_','\_'),'LC_'));
+            arrayfun(@(i)line([labels(i) labels(i)],[C_lb_wt(i) C_ub_wt(i)],'linewidth',4,'color','k'),1:numel(LC_varNames))
+            hold on
+            h = zeros(2,1);
+            h(1)=scatter(labels(~ch_conc_idx),exp(met_conc(~ch_conc_idx)),15,'filled');
+            h(2)=scatter(labels(ch_conc_idx),exp(met_conc(ch_conc_idx)),15,'filled');
+            hold off
+            set(gca,'YScale','log','FontSize',10)
+            legend(h,{'unchanged','relaxed'},'FontSize',14,'box','off',...
+                'location','southeast')
+            ylabel('TFA metabolite concentration [M]','FontSize',14)
+            text(0.01,0.95,'Col-0','units','normalized','fontweight','bold')
+            
+            % fix metabolite measured metabolite concentrations to newly
+            % obtained values with 10% tolerance
+            wt_tmodel.var_lb(cellfun(@(x)find(ismember(wt_tmodel.varNames,x)),...
+                LC_varNames)) = met_conc-abs(.1*(met_conc));
+            wt_tmodel.var_ub(cellfun(@(x)find(ismember(wt_tmodel.varNames,x)),...
+                LC_varNames)) = met_conc+abs(.1*(met_conc));
+            
+            % set lower bound for biomass to 90% of optimal value
+            wt_tmodel.var_lb(wt_tmodel.f==1) = 0.9*wt_opt;
+            
+            % Run tva with the data
+            if ~isempty(tfa_wt.x)
+                tva_wt = runTMinMax(wt_tmodel, wt_tmodel.varNames(NF_idx));
+            end
+            
+            %% solve TFA for mutant model
+            mut_tmodel = this_tmodel;
+            mut_tmodel.var_lb(ismember(mut_tmodel.varNames,strcat('NF_', ko_rxns{m_idx}))) = 0;
+            mut_tmodel.var_ub(ismember(mut_tmodel.varNames,strcat('NF_', ko_rxns{m_idx}))) = 0;
+            
+            % run FVA for mutant model
+            mut_model = model;
+            mut_model.lb(ismember(mut_model.rxns,ko_rxns{m_idx})) = 0;
+            mut_model.ub(ismember(mut_model.rxns,ko_rxns{m_idx})) = 0;
+            fva_mut = runMinMax(mut_model);
+            is_bd_fva_mut = (n(fva_mut));
+            
+            % add biomass ratio constraint
+            mut_tmodel.var_ub(mut_tmodel.f==1) = wt_opt / biomass_ratio + 1e-10;
+            mut_tmodel.var_lb(mut_tmodel.f==1) = wt_opt / biomass_ratio - 1e-10;
+            
+            % add relaxed metabolite concentration ranges to measured
+            % metabolites
+            mut_tmodel = addRelaxedMetConcRanges(mut_tmodel,LC_varNames,log(C_lb_wt),log(C_ub_wt));
+            
+            % add minimization objective for relaxation variables
+            mut_tmodel.f(startsWith(mut_tmodel.varNames,'EPS_')) = -1e-3;
+            
+            % solve TFA
+            tfa_mut = solveTFAmodelCplex(mut_tmodel);
+            
+            % positive and negative concentration relaxations
+            eps_minus = tfa_mut.x(startsWith(mut_tmodel.varNames,'EPS_MINUS'));
+            eps_plus = tfa_mut.x(startsWith(mut_tmodel.varNames,'EPS_PLUS'));
+            ch_conc_idx = eps_minus>1e-4 | eps_plus>1e-4;
+            
+            % (relaxed) TFA metabolite concentrations
+            met_conc = tfa_mut.x(cellfun(@(x)find(ismember(mut_tmodel.varNames,x)),...
+                LC_varNames));
+            
+            % add second panel to figure
+            nexttile
+            labels = categorical(erase(strrep(LC_varNames,'_','\_'),'LC_'));
+            arrayfun(@(i)line([labels(i) labels(i)],[C_lb_mut(i) C_ub_mut(i)],'linewidth',4,'color','k'),1:numel(LC_varNames))
+            hold on
+            h = zeros(2,1);
+            h(1)=scatter(labels(~ch_conc_idx),exp(met_conc(~ch_conc_idx)),15,'filled');
+            h(2)=scatter(labels(ch_conc_idx),exp(met_conc(ch_conc_idx)),15,'filled');
+            hold off
+            set(gca,'YScale','log','FontSize',10)
+            legend(h,{'unchanged','relaxed'},'FontSize',14,'box','off',...
+                'location','southeast')
+            ylabel('TFA metabolite concentration [M]','FontSize',14)
+            text(0.01,0.95,['{\it ' mutants{m_idx} '}'],'units','normalized','fontweight','bold')
+            set(tmp_fig,'Outerposition',1000*[1.5297   -0.2063    1.5507    0.9347])
+            
+            exportgraphics(tmp_fig,[res_dir filesep 'metabolite_concentration_' mutants{m_idx} ...
+                '_timepoint_' num2str(tp(t_idx)) '_phUB_' num2str(ph_ub(l_idx)) '.png'])
+            
+            % fix metabolite measured metabolite concentrations to newly
+            % obtained values with 10% tolerance
+            mut_tmodel.var_lb(cellfun(@(x)find(ismember(mut_tmodel.varNames,x)),...
+                LC_varNames)) = met_conc-abs(.1*(met_conc));
+            mut_tmodel.var_ub(cellfun(@(x)find(ismember(mut_tmodel.varNames,x)),...
+                LC_varNames)) = met_conc+abs(.1*(met_conc));
+            
+            % fix biomass flux between 90% and 100% of mutant growth
+            mut_tmodel.var_lb(mut_tmodel.f==1) = 0.9*(wt_opt / biomass_ratio) - 1e-10;
+            
+            % Run tva with the data
+            if ~isempty(tfa_mut.x)
+                tva_mut = runTMinMax(mut_tmodel, mut_tmodel.varNames(NF_idx));
+            end
+            
+            %% find non-overlapping reactions between wild type and mutant
+            nf_idx = find(startsWith(wt_tmodel.varNames,'NF_'));
+            non_overlapping = false(numel(nf_idx),1);
+            for i=1:numel(nf_idx)
+                if tva_mut(i,1) > tva_wt(i,2) + 1e-8
+                    non_overlapping(i) = 1;
+                elseif tva_wt(i,1) > tva_mut(i,2) + 1e-8
+                    non_overlapping(i) = 1;
+                end
+            end
+            
+            rxn_idx = cellfun(@(x)findRxnIDs(model,x),erase(wt_tmodel.varNames(nf_idx),'NF_'));
+            
+            writetable(...
+                [cell2table(...
+                [model.rxns(rxn_idx(non_overlapping)),...
+                model.rxnNames(rxn_idx(non_overlapping)),...
+                model.subSystems(rxn_idx(non_overlapping))],...
+                'VariableNames', {'ReactionID','ReactionName','ReactionSubSystem'}...
+                ),...
+                array2table(...
+                [tva_wt(non_overlapping,1) tva_wt(non_overlapping,2),...
+                tva_mut(non_overlapping,1) tva_mut(non_overlapping,2)],...
+                'VariableNames', {...
+                'minFluxWT','maxFluxWT','minFluxMUT','maxFluxMUT'...
+                })],...
+                [res_dir filesep 'diff_rxns_tfa_' mutants{m_idx} ...
+                't_' num2str(tp(t_idx)) ...
+                '_phUB_' num2str(ph_ub(l_idx)) '.csv']...
+                );
+            
+            
+            %% find reactions that show differences in flexibility between wild type and mutant
+            is_bd_tva_wt = (n(tva_wt));
+            is_bd_tva_mut = (n(tva_mut));
+            diff_dir_idx = xor(is_bd_tva_wt, is_bd_tva_mut);
+            
+            dir_tab = [...
+                cell2table([...
+                model.rxns(diff_dir_idx),...
+                model.rxnNames(diff_dir_idx),...
+                model.subSystems(diff_dir_idx)],...
+                'VariableNames', {'ReactionID','ReactionName','ReactionSubSystem'}...
+                ),...
+                array2table([...
+                is_bd_fva_wt(diff_dir_idx),...
+                is_bd_fva_mut(diff_dir_idx),...
+                is_bd_tva_wt(diff_dir_idx),...
+                is_bd_tva_mut(diff_dir_idx),...
+                fva_wt(diff_dir_idx,1),fva_wt(diff_dir_idx,2),...
+                fva_mut(diff_dir_idx,1),fva_mut(diff_dir_idx,1),...
+                tva_wt(diff_dir_idx,1),tva_wt(diff_dir_idx,2),...
+                tva_mut(diff_dir_idx,1),tva_mut(diff_dir_idx,2)],...
+                'VariableNames',{...
+                'IS_BD_FVA_WT','IS_BD_FVA_MUT','IS_BD_TVA_WT','IS_BD_TVA_Mut',...
+                'minFlux_FVA_WT','maxFlux_FVA_WT','minFlux_FVA_MUT','maxFlux_FVA_MUT',...
+                'minFlux_WT','maxFlux_WT','minFlux_Mut','maxFlux_Mut'}...
+                )];
+            
+            writetable(dir_tab,[res_dir filesep 'rxn_flexibility_' ...
+                mutants{m_idx} ...
+                '_t_' num2str(tp(t_idx)) ...
+                '_pHUB_' num2str(ph_ub(l_idx)) '.csv'])
         end
-        
-        rxn_idx = cellfun(@(x)findRxnIDs(model,x),erase(wt_tmodel.varNames(nf_idx),'NF_'));
-        
-        writetable(...
-            [cell2table(...
-            [model.rxns(rxn_idx(non_overlapping)),...
-            model.rxnNames(rxn_idx(non_overlapping)),...
-            model.subSystems(rxn_idx(non_overlapping))],...
-            'VariableNames', {'ReactionID','ReactionName','ReactionSubSystem'}...
-            ),...
-            array2table(...
-            [tva_wt(non_overlapping,1) tva_wt(non_overlapping,2),...
-            tva_mut(non_overlapping,1) tva_mut(non_overlapping,2)],...
-            'VariableNames', {...
-            'minFluxWT','maxFluxWT','minFluxMUT','maxFluxMUT'...
-            })],...
-            [res_dir filesep 'diff_rxns_tfa_' mutants{m_idx} ...
-            't_' num2str(tp(t_idx)) ...
-            '_' l_conds{l_idx} '.csv']...
-            );
-        
-        
-        %% find reactions that show differences in flexibility between wild type and mutant
-        is_bd_tva_wt = (n(tva_wt));
-        is_bd_tva_mut = (n(tva_mut));
-        diff_dir_idx = xor(is_bd_tva_wt, is_bd_tva_mut);
-        
-        dir_tab = [...
-            cell2table([...
-            model.rxns(diff_dir_idx),...
-            model.rxnNames(diff_dir_idx),...
-            model.subSystems(diff_dir_idx)],...
-            'VariableNames', {'ReactionID','ReactionName','ReactionSubSystem'}...
-            ),...
-            array2table([...
-            is_bd_fva_wt(diff_dir_idx),...
-            is_bd_fva_mut(diff_dir_idx),...
-            is_bd_tva_wt(diff_dir_idx),...
-            is_bd_tva_mut(diff_dir_idx),...
-            fva_wt(diff_dir_idx,1),fva_wt(diff_dir_idx,2),...
-            fva_mut(diff_dir_idx,1),fva_mut(diff_dir_idx,1),...
-            tva_wt(diff_dir_idx,1),tva_wt(diff_dir_idx,2),...
-            tva_mut(diff_dir_idx,1),tva_mut(diff_dir_idx,2)],...
-            'VariableNames',{...
-            'IS_BD_FVA_WT','IS_BD_FVA_MUT','IS_BD_TVA_WT','IS_BD_TVA_Mut',...
-            'minFlux_FVA_WT','maxFlux_FVA_WT','minFlux_FVA_MUT','maxFlux_FVA_MUT',...
-            'minFlux_WT','maxFlux_WT','minFlux_Mut','maxFlux_Mut'}...
-            )];
-        
-        writetable(dir_tab,[res_dir filesep 'rxn_flx_' mutants{m_idx} '_t_' ...
-            num2str(tp(t_idx)) '.csv'])
-        
     end
 end
