@@ -1,0 +1,2 @@
+ReactionID,ReactionName,ReactionSubSystem,minFluxWT,maxFluxWT,minFluxMUT,maxFluxMUT
+Bio_opt,Light limiting biomass,biomass reaction,9.35998442444342e-05,0.00015931171094982,7.40072610664555e-05,8.22305011849505e-05
