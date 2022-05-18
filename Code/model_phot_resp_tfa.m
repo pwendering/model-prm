@@ -12,7 +12,7 @@
 clear;clc
 
 % number of workers for parallel computing
-NCPU = 4;
+NCPU = 20;
 
 % define data and output directory
 data_dir = '../Data';
@@ -25,10 +25,16 @@ parpool(NCPU);
 % initialize COBRA
 initCobraToolbox(false)
 
+% fix setfield error
+curr_path = pwd;
+cd ~/cobratoolbox/external/analysis/PolytopeSamplerMatlab/code/utils
+system('mv setfield.m Setfield.m');
+cd(curr_path)
+
 % CPLEX path and COBRA solver
-cplexPath = 'C:\Program Files\IBM\ILOG\CPLEX_Studio129\cplex\matlab\x64_win64';
+cplexPath = '~/bin/ibm/ILOG/CPLEX_Studio129/cplex/matlab/x86-64_linux/';
 addpath(genpath(cplexPath))
-changeCobraSolver('ibm_cplex')
+changeCobraSolver('ibm_cplex','all');
 
 % path to matTFA toolbox
 mattfa_path = fullfile('..','..','matTFA');
@@ -449,6 +455,10 @@ for t_idx = 1:numel(tp)
             % solve TFA
             tfa_wt = solveTFAmodelCplex(wt_tmodel);
             
+            if isempty(tfa_wt.x)
+	        continue
+            end
+
             % WT optimal growth rate
             wt_opt = tfa_wt.x(wt_tmodel.f==1);
             
@@ -519,6 +529,10 @@ for t_idx = 1:numel(tp)
             % solve TFA
             tfa_mut = solveTFAmodelCplex(mut_tmodel);
             
+            if isempty(tfa_mut.x)
+                continue
+            end
+
             % positive and negative concentration relaxations
             eps_minus_mut = tfa_mut.x(startsWith(mut_tmodel.varNames,'EPS_MINUS'));
             eps_plus_mut = tfa_mut.x(startsWith(mut_tmodel.varNames,'EPS_PLUS'));
@@ -545,7 +559,7 @@ for t_idx = 1:numel(tp)
             % set(tmp_fig,'Outerposition',1000*[1.5297   -0.2063    1.5507    0.9347])
             
             exportgraphics(tmp_fig,[res_dir filesep 'metabolite_concentration_' mutants{m_idx} ...
-                '_timepoint_' num2str(tp(t_idx)) '_phUB_' num2str(ph_ub(l_idx)) '.png'])
+                '_timepoint_' num2str(tp(t_idx)) '_phUB_' num2str(ph_ub(l_idx),3) '.png'])
             delete(tmp_fig)
             
             % fix metabolite measured metabolite concentrations to newly
@@ -591,7 +605,7 @@ for t_idx = 1:numel(tp)
                 })],...
                 [res_dir filesep 'diff_rxns_tfa_' mutants{m_idx} ...
                 't_' num2str(tp(t_idx)) ...
-                '_phUB_' num2str(ph_ub(l_idx)) '.csv']...
+                '_phUB_' num2str(ph_ub(l_idx),3) '.csv']...
                 );
             
             
@@ -625,7 +639,7 @@ for t_idx = 1:numel(tp)
             writetable(dir_tab,[res_dir filesep 'rxn_flexibility_' ...
                 mutants{m_idx} ...
                 '_t_' num2str(tp(t_idx)) ...
-                '_pHUB_' num2str(ph_ub(l_idx)) '.csv'])
+                '_pHUB_' num2str(ph_ub(l_idx),3) '.csv'])
             
             %% write FVA and TVA results to file
             writetable(...
