@@ -1,4 +1,0 @@
-ReactionID,ReactionName,ReactionSubSystem,minFluxWT,maxFluxWT,minFluxMUT,maxFluxMUT
-ADPR_c,Ribonucleoside-diphosphate reductase,nucleotide metabolism,6.37330699444777e-05,0.000111647075096255,5.3778391363275e-05,5.3778391363275e-05
-dADPK_c,Nucleoside-diphosphate kinase,nucleotide metabolism,6.37330699444777e-05,0.000111647075096255,5.3778391363275e-05,5.3778391363275e-05
-Bio_opt,Light limiting biomass,biomass reaction,9.35998442444342e-05,0.00015931171094982,7.89801755933604e-05,8.77559617704004e-05
