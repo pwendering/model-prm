@@ -40,7 +40,7 @@ addpath(genpath(fullfile(mattfa_path,'plotting')))
 %% Load the model
 % metabolic model (updated metabolite names and added inchi keys)
 % model reference: Arnold and Nikoloski (2014), doi: 10.1104/pp.114.235358
-load(fullfile('..','Data','AraCore-updated-rev.mat'));
+load(fullfile(data_dir,'AraCore-updated-rev.mat'));
 model.metCompSymbol = regexprep(model.mets,'.*\[(?<comp>\w)\]$','$<comp>');
 tmp = load(fullfile(mattfa_path,'models','smallEcoli.mat'));
 eco_model = tmp.smallEcoli;
@@ -453,24 +453,24 @@ for t_idx = 1:numel(tp)
             wt_opt = tfa_wt.x(wt_tmodel.f==1);
             
             % positive and negative concentration relaxations
-            eps_minus = tfa_wt.x(startsWith(wt_tmodel.varNames,'EPS_MINUS'));
-            eps_plus = tfa_wt.x(startsWith(wt_tmodel.varNames,'EPS_PLUS'));
-            ch_conc_idx = eps_minus>1e-4 | eps_plus>1e-4;
+            eps_minus_wt = tfa_wt.x(startsWith(wt_tmodel.varNames,'EPS_MINUS'));
+            eps_plus_wt = tfa_wt.x(startsWith(wt_tmodel.varNames,'EPS_PLUS'));
+            ch_conc_idx = eps_minus_wt>1e-4 | eps_plus_wt>1e-4;
             
             % (relaxed) TFA metabolite concentrations
-            met_conc = tfa_wt.x(cellfun(@(x)find(ismember(wt_tmodel.varNames,x)),...
+            met_conc_wt = tfa_wt.x(cellfun(@(x)find(ismember(wt_tmodel.varNames,x)),...
                 LC_varNames));
             
             % create figure with updated metabolite concentration ranges
             tmp_fig = figure('Visible','off');
             tiledlayout(2,1)
             nexttile
-            labels = categorical(erase(strrep(LC_varNames,'_','\_'),'LC_'));
+            labels = categorical(strrep(erase(LC_varNames,'LC_'),'_','\_'));
             arrayfun(@(i)line([labels(i) labels(i)],[C_lb_wt(i) C_ub_wt(i)],'linewidth',4,'color','k'),1:numel(LC_varNames))
             hold on
             h = zeros(2,1);
-            h(1)=scatter(labels(~ch_conc_idx),exp(met_conc(~ch_conc_idx)),15,'filled');
-            h(2)=scatter(labels(ch_conc_idx),exp(met_conc(ch_conc_idx)),15,'filled');
+            h(1)=scatter(labels(~ch_conc_idx),exp(met_conc_wt(~ch_conc_idx)),15,'filled');
+            h(2)=scatter(labels(ch_conc_idx),exp(met_conc_wt(ch_conc_idx)),15,'filled');
             hold off
             set(gca,'YScale','log','FontSize',10)
             legend(h,{'unchanged','relaxed'},'FontSize',14,'box','off',...
@@ -481,9 +481,9 @@ for t_idx = 1:numel(tp)
             % fix metabolite measured metabolite concentrations to newly
             % obtained values with 10% tolerance
             wt_tmodel.var_lb(cellfun(@(x)find(ismember(wt_tmodel.varNames,x)),...
-                LC_varNames)) = met_conc-abs(.1*(met_conc));
+                LC_varNames)) = met_conc_wt-abs(.1*(met_conc_wt));
             wt_tmodel.var_ub(cellfun(@(x)find(ismember(wt_tmodel.varNames,x)),...
-                LC_varNames)) = met_conc+abs(.1*(met_conc));
+                LC_varNames)) = met_conc_wt+abs(.1*(met_conc_wt));
             
             % set lower bound for biomass to 90% of optimal value
             wt_tmodel.var_lb(wt_tmodel.f==1) = 0.9*wt_opt;
@@ -520,39 +520,40 @@ for t_idx = 1:numel(tp)
             tfa_mut = solveTFAmodelCplex(mut_tmodel);
             
             % positive and negative concentration relaxations
-            eps_minus = tfa_mut.x(startsWith(mut_tmodel.varNames,'EPS_MINUS'));
-            eps_plus = tfa_mut.x(startsWith(mut_tmodel.varNames,'EPS_PLUS'));
-            ch_conc_idx = eps_minus>1e-4 | eps_plus>1e-4;
+            eps_minus_mut = tfa_mut.x(startsWith(mut_tmodel.varNames,'EPS_MINUS'));
+            eps_plus_mut = tfa_mut.x(startsWith(mut_tmodel.varNames,'EPS_PLUS'));
+            ch_conc_idx = eps_minus_mut>1e-4 | eps_plus_mut>1e-4;
             
             % (relaxed) TFA metabolite concentrations
-            met_conc = tfa_mut.x(cellfun(@(x)find(ismember(mut_tmodel.varNames,x)),...
+            met_conc_mut = tfa_mut.x(cellfun(@(x)find(ismember(mut_tmodel.varNames,x)),...
                 LC_varNames));
             
             % add second panel to figure
             nexttile
-            labels = categorical(erase(strrep(LC_varNames,'_','\_'),'LC_'));
+            labels = categorical(strrep(erase(LC_varNames,'LC_'),'_','\_'));
             arrayfun(@(i)line([labels(i) labels(i)],[C_lb_mut(i) C_ub_mut(i)],'linewidth',4,'color','k'),1:numel(LC_varNames))
             hold on
             h = zeros(2,1);
-            h(1)=scatter(labels(~ch_conc_idx),exp(met_conc(~ch_conc_idx)),15,'filled');
-            h(2)=scatter(labels(ch_conc_idx),exp(met_conc(ch_conc_idx)),15,'filled');
+            h(1)=scatter(labels(~ch_conc_idx),exp(met_conc_mut(~ch_conc_idx)),15,'filled');
+            h(2)=scatter(labels(ch_conc_idx),exp(met_conc_mut(ch_conc_idx)),15,'filled');
             hold off
             set(gca,'YScale','log','FontSize',10)
             legend(h,{'unchanged','relaxed'},'FontSize',14,'box','off',...
                 'location','southeast')
             ylabel('TFA metabolite concentration [M]','FontSize',14)
             text(0.01,0.95,['{\it ' mutants{m_idx} '}'],'units','normalized','fontweight','bold')
-            set(tmp_fig,'Outerposition',1000*[1.5297   -0.2063    1.5507    0.9347])
+            % set(tmp_fig,'Outerposition',1000*[1.5297   -0.2063    1.5507    0.9347])
             
             exportgraphics(tmp_fig,[res_dir filesep 'metabolite_concentration_' mutants{m_idx} ...
                 '_timepoint_' num2str(tp(t_idx)) '_phUB_' num2str(ph_ub(l_idx)) '.png'])
+            delete(tmp_fig)
             
             % fix metabolite measured metabolite concentrations to newly
             % obtained values with 10% tolerance
             mut_tmodel.var_lb(cellfun(@(x)find(ismember(mut_tmodel.varNames,x)),...
-                LC_varNames)) = met_conc-abs(.1*(met_conc));
+                LC_varNames)) = met_conc_mut-abs(.1*(met_conc_mut));
             mut_tmodel.var_ub(cellfun(@(x)find(ismember(mut_tmodel.varNames,x)),...
-                LC_varNames)) = met_conc+abs(.1*(met_conc));
+                LC_varNames)) = met_conc_mut+abs(.1*(met_conc_mut));
             
             % fix biomass flux between 90% and 100% of mutant growth
             mut_tmodel.var_lb(mut_tmodel.f==1) = 0.9*(wt_opt / biomass_ratio) - 1e-10;
@@ -566,9 +567,9 @@ for t_idx = 1:numel(tp)
             nf_idx = find(startsWith(wt_tmodel.varNames,'NF_'));
             non_overlapping = false(numel(nf_idx),1);
             for i=1:numel(nf_idx)
-                if tva_mut(i,1) > tva_wt(i,2) + 1e-8
+                if tva_mut(i,1) > tva_wt(i,2) + 1e-9
                     non_overlapping(i) = 1;
-                elseif tva_wt(i,1) > tva_mut(i,2) + 1e-8
+                elseif tva_wt(i,1) > tva_mut(i,2) + 1e-9
                     non_overlapping(i) = 1;
                 end
             end
@@ -612,19 +613,46 @@ for t_idx = 1:numel(tp)
                 is_bd_tva_wt(diff_dir_idx),...
                 is_bd_tva_mut(diff_dir_idx),...
                 fva_wt(diff_dir_idx,1),fva_wt(diff_dir_idx,2),...
-                fva_mut(diff_dir_idx,1),fva_mut(diff_dir_idx,1),...
+                fva_mut(diff_dir_idx,1),fva_mut(diff_dir_idx,2),...
                 tva_wt(diff_dir_idx,1),tva_wt(diff_dir_idx,2),...
                 tva_mut(diff_dir_idx,1),tva_mut(diff_dir_idx,2)],...
                 'VariableNames',{...
                 'IS_BD_FVA_WT','IS_BD_FVA_MUT','IS_BD_TVA_WT','IS_BD_TVA_Mut',...
-                'minFlux_FVA_WT','maxFlux_FVA_WT','minFlux_FVA_MUT','maxFlux_FVA_MUT',...
-                'minFlux_WT','maxFlux_WT','minFlux_Mut','maxFlux_Mut'}...
+                'minFlux_FVA_WT','maxFlux_FVA_WT','minFlux_FVA_Mut','maxFlux_FVA_Mut',...
+                'minFlux_TVA_WT','maxFlux_TVA_WT','minFlux_TVA_Mut','maxFlux_TVA_Mut'}...
                 )];
             
             writetable(dir_tab,[res_dir filesep 'rxn_flexibility_' ...
                 mutants{m_idx} ...
                 '_t_' num2str(tp(t_idx)) ...
                 '_pHUB_' num2str(ph_ub(l_idx)) '.csv'])
+            
+            %% write FVA and TVA results to file
+            writetable(...
+                array2table([...
+                fva_wt fva_mut tva_wt tva_mut ...
+                ],...
+                'VariableNames',{...
+                'minFlux_FVA_WT','maxFlux_FVA_WT','minFlux_FVA_Mut','maxFlux_FVA_Mut',...
+                'minFlux_TVA_WT','maxFlux_TVA_WT','minFlux_TVA_Mut','maxFlux_TVA_Mut'},...
+                'RowNames',model.rxns),...
+                [res_dir filesep 'va_results_' mutants{m_idx} ...
+                '_t_' num2str(tp(t_idx)) '_pHUB_' num2str(ph_ub(l_idx),3) '.csv'],...
+                'WriteRowNames', true)
+            
+            %% write relaxed metabolite concentrations to file
+            writetable(...
+                array2table([...
+                C_lb_wt C_ub_wt exp(met_conc_wt) eps_minus_wt eps_plus_wt ...
+                C_lb_mut C_ub_mut exp(met_conc_mut) eps_minus_mut eps_plus_mut],...
+                'VariableNames',...
+                {'CONC_LB_WT','CONC_UB_WT','TFA_CONC_WT','E_PLUS_LOG_WT','E_MINUS_LOG_WT',...
+                'CONC_LB_MUT','CONC_UB_MUT','TFA_CONC_MUT','E_PLUS_LOG_MUT','E_MINUS_LOG_MUT'},...
+                'RowNames', strrep(erase(LC_varNames,'LC_'),'_','\_')),...
+                [res_dir filesep 'met_conc_' mutants{m_idx} ...
+                '_t_' num2str(tp(t_idx)) '_pHUB_' num2str(ph_ub(l_idx),3) '.csv'],...
+                'WriteRowNames',true)
+                
         end
     end
 end
