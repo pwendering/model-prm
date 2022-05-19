@@ -26,13 +26,14 @@ parpool(NCPU);
 initCobraToolbox(false)
 
 % fix setfield error
-curr_path = pwd;
-cd ~/cobratoolbox/external/analysis/PolytopeSamplerMatlab/code/utils
-system('mv setfield.m Setfield.m');
-cd(curr_path)
+% curr_path = pwd;
+% cd ~/cobratoolbox/external/analysis/PolytopeSamplerMatlab/code/utils
+% system('mv setfield.m Setfield.m');
+% cd(curr_path)
 
 % CPLEX path and COBRA solver
-cplexPath = '~/bin/ibm/ILOG/CPLEX_Studio129/cplex/matlab/x86-64_linux/';
+% cplexPath = '~/bin/ibm/ILOG/CPLEX_Studio129/cplex/matlab/x86-64_linux/';
+cplexPath = fullfile('C:/Program Files/IBM/ILOG/CPLEX_Studio129/cplex/matlab/x64_win64/');
 addpath(genpath(cplexPath))
 changeCobraSolver('ibm_cplex','all');
 
@@ -210,8 +211,11 @@ solFBA = optimizeCbModel(model);
 min_obj = roundsd(0.5*solFBA.f, 2, 'floor');
 model.lb(model.c==1) = min_obj;
 
-%% Perform FVA
+%% Perform FVA at 90% of the optimum
+old_ub = model.lb(model.c==1);
+model.lb(model.c==1) = 0.9*solFBA.f;
 fva_wt = runMinMax(model,model.rxns,false);
+model.lb(model.c==1) = old_ub;
 % - logical vector with indices for bidirectional reactions (flux ranges crossing zero)
 n = @(x) x(:,1)<-1e-9 & x(:,2)>1e-9;
 is_bd_fva_wt = (n(fva_wt));
@@ -456,7 +460,7 @@ for t_idx = 1:numel(tp)
             tfa_wt = solveTFAmodelCplex(wt_tmodel);
             
             if isempty(tfa_wt.x)
-	        continue
+                continue
             end
 
             % WT optimal growth rate
@@ -472,7 +476,10 @@ for t_idx = 1:numel(tp)
                 LC_varNames));
             
             % create figure with updated metabolite concentration ranges
-            tmp_fig = figure('Visible','off');
+            tmp_fig = figure(...
+                'Visible','off',...
+                'units','normalized',...
+                'outerposition',[0 0 1 1]);
             tiledlayout(2,1)
             nexttile
             labels = categorical(strrep(erase(LC_varNames,'LC_'),'_','\_'));
@@ -486,7 +493,7 @@ for t_idx = 1:numel(tp)
             legend(h,{'unchanged','relaxed'},'FontSize',14,'box','off',...
                 'location','southeast')
             ylabel('TFA metabolite concentration [M]','FontSize',14)
-            text(0.01,0.95,'Col-0','units','normalized','fontweight','bold')
+            text(0.01,0.98,'Col-0','units','normalized','fontweight','bold')
             
             % fix metabolite measured metabolite concentrations to newly
             % obtained values with 10% tolerance
@@ -512,8 +519,11 @@ for t_idx = 1:numel(tp)
             mut_model = model;
             mut_model.lb(ismember(mut_model.rxns,ko_rxns{m_idx})) = 0;
             mut_model.ub(ismember(mut_model.rxns,ko_rxns{m_idx})) = 0;
+            mutFBASol = optimizeCbModel(mut_model);
+            mut_model.lb(mut_model.c==1) = 0.9*mutFBASol.f;
             fva_mut = runMinMax(mut_model);
             is_bd_fva_mut = (n(fva_mut));
+            clear mut_model mutFBASol
             
             % add biomass ratio constraint
             mut_tmodel.var_ub(mut_tmodel.f==1) = wt_opt / biomass_ratio + 1e-10;
@@ -521,7 +531,7 @@ for t_idx = 1:numel(tp)
             
             % add relaxed metabolite concentration ranges to measured
             % metabolites
-            mut_tmodel = addRelaxedMetConcRanges(mut_tmodel,LC_varNames,log(C_lb_wt),log(C_ub_wt));
+            mut_tmodel = addRelaxedMetConcRanges(mut_tmodel,LC_varNames,log(C_lb_mut),log(C_ub_mut));
             
             % add minimization objective for relaxation variables
             mut_tmodel.f(startsWith(mut_tmodel.varNames,'EPS_')) = -1e-3;
@@ -555,8 +565,7 @@ for t_idx = 1:numel(tp)
             legend(h,{'unchanged','relaxed'},'FontSize',14,'box','off',...
                 'location','southeast')
             ylabel('TFA metabolite concentration [M]','FontSize',14)
-            text(0.01,0.95,['{\it ' mutants{m_idx} '}'],'units','normalized','fontweight','bold')
-            % set(tmp_fig,'Outerposition',1000*[1.5297   -0.2063    1.5507    0.9347])
+            text(0.01,0.98,['{\it ' mutants{m_idx} '}'],'units','normalized','fontweight','bold')
             
             exportgraphics(tmp_fig,[res_dir filesep 'metabolite_concentration_' mutants{m_idx} ...
                 '_timepoint_' num2str(tp(t_idx)) '_phUB_' num2str(ph_ub(l_idx),3) '.png'])
@@ -660,9 +669,9 @@ for t_idx = 1:numel(tp)
                 C_lb_wt C_ub_wt exp(met_conc_wt) eps_minus_wt eps_plus_wt ...
                 C_lb_mut C_ub_mut exp(met_conc_mut) eps_minus_mut eps_plus_mut],...
                 'VariableNames',...
-                {'CONC_LB_WT','CONC_UB_WT','TFA_CONC_WT','E_PLUS_LOG_WT','E_MINUS_LOG_WT',...
-                'CONC_LB_MUT','CONC_UB_MUT','TFA_CONC_MUT','E_PLUS_LOG_MUT','E_MINUS_LOG_MUT'},...
-                'RowNames', strrep(erase(LC_varNames,'LC_'),'_','\_')),...
+                {'CONC_LB_WT','CONC_UB_WT','TFA_CONC_WT','E_MINUS_LOG_WT','E_PLUS_LOG_WT',...
+                'CONC_LB_MUT','CONC_UB_MUT','TFA_CONC_MUT','E_MINUS_LOG_MUT','E_PLUS_LOG_MUT'},...
+                'RowNames', erase(LC_varNames,'LC_')),...
                 [res_dir filesep 'met_conc_' mutants{m_idx} ...
                 '_t_' num2str(tp(t_idx)) '_pHUB_' num2str(ph_ub(l_idx),3) '.csv'],...
                 'WriteRowNames',true)
