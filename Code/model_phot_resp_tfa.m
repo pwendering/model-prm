@@ -201,14 +201,17 @@ end
 %% photon uptake
 fprintf('Setting photon uptake to 200 umol/m2/s\n')
 LMA = 22.2; % [gDW/m2] (Hummel et al. 2010, doi: 10.1104/pp.110.157008)
-I_ML = 3600 * 200 / LMA / 1000; % [mmol/gDW/h]
-I_FL = 3600 * 700 / LMA / 1000; % [mmol/gDW/h] (use kinetic model to integrate fluctuations?)
+%I_ML = 3600 * 200 / LMA / 1000; % [mmol/gDW/h]
+%I_FL = 3600 * 700 / LMA / 1000; % [mmol/gDW/h] (use kinetic model to integrate fluctuations?)
+I_ML = 1000*200/700; % scale by assuming the 700 uE is saturating
+I_FL = 1000;
+
 model.ub(findRxnIDs(model,'Im_hnu')) = I_ML;
 
 %% Test simple fba
 solFBA = optimizeCbModel(model);
 % We can set a lower bound for growth (e.g. 50% of maximal growth)
-min_obj = roundsd(0.5*solFBA.f, 2, 'floor');
+min_obj = roundsd(0.4*solFBA.f, 2, 'floor');
 model.lb(model.c==1) = min_obj;
 
 %% Perform FVA at 90% of the optimum
@@ -356,7 +359,7 @@ for t_idx = 1:numel(tp)
         for l_idx = 1:numel(ph_ub)
             fprintf('[[ I = %d umol/m2/s ]]\n',ph_ub(l_idx)*1000*LMA/3600)
             model.ub(findRxnIDs(model,'Im_hnu')) = ph_ub(l_idx);
-            this_tmodel.var_ub(strcmp(this_tmodel.varNames,'U_Im_hnu')) = ph_ub(l_idx);
+            this_tmodel.var_ub(strcmp(this_tmodel.varNames,'F_Im_hnu')) = ph_ub(l_idx);
             
             % test if growth is possible with knock-outs
             ko_model = removeRxns(model,ko_rxns{m_idx});
