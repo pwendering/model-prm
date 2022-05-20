@@ -565,7 +565,7 @@ for t_idx = 1:numel(tp)
             mut_model.ub(ismember(mut_model.rxns,ko_rxns{m_idx})) = 0;
             mutFBASol = optimizeCbModel(mut_model);
             mut_model.lb(mut_model.c==1) = 0.9*mutFBASol.f;
-            fva_mut = runMinMax(mut_model);
+            fva_mut = runMinMax(mut_model,mut_model.rxns,'runParallel',PAR_FLAG);
             is_bd_fva_mut = (n(fva_mut));
             clear mut_model mutFBASol
             
@@ -631,7 +631,8 @@ for t_idx = 1:numel(tp)
             
             % Run tva with the data
             fprintf('Running variability analysis\n')
-            tva_mut = runTMinMax(mut_tmodel, mut_tmodel.varNames(NF_idx));
+            tva_mut = runTMinMax(mut_tmodel, wt_tmodel.varNames(NF_idx),...
+                'runParallel',PAR_FLAG);
             
             % Run flux sampling
             tic
