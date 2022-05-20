@@ -21,6 +21,8 @@ function [fluxSamples,concSamples,norm1Obj] = sampleTModel(tModel,minFlux,maxFlu
 %   double norm1Obj:            objective values from norm 1 minimzation to
 %                               random flux vector
 
+rng('default')
+
 if any(minFlux > maxFlux)
     error('At least one minimum flux value is greater than the maximum')
 end
@@ -42,19 +44,32 @@ norm1Obj = sparse(n,1);
 
 % add first norm minimization to model
 tModel_norm1 = addMinNorm1Const(tModel);
+clear tModel
 
 if threads == 1
+    
+    printMsg = '-- Done with 0 samples\n';
     
     for i=1:n
         
         v = createRandomFluxVector(minFlux,maxFlux);
         projSol = performProjectionCPLEX(tModel_norm1,v);
         
-        if ~isempty(projSol.x) || isnan(projSol.x)
+        if ~isempty(projSol.x)
             [fluxCol,concCol,objVal] = deal(projSol.x(nfIdx),projSol.x(lcIdx),projSol.val);
             fluxSamples(:,i) = fluxCol;
             concSamples(:,i) = concCol;
             norm1Obj(i) = objVal;
+        else
+            fprintf(printMsg)
+        end
+        
+        if mod(i,100)==0
+            if i>100
+                fprintf(repmat('\b',1,length(printMsg)))
+            end
+            printMsg = regexprep(printMsg,'\d+',num2str(i));
+            fprintf(printMsg)
         end
     end
     
