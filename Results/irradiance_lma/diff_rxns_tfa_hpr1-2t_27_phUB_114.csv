@@ -1,5 +1,0 @@
-ReactionID,ReactionName,ReactionSubSystem,minFluxWT,maxFluxWT,minFluxMUT,maxFluxMUT
-CTPP_c,Nucleoside-triphosphatase,nucleotide metabolism,5.6599070717242e-05,6.48539322799597e-05,4.77586951282928e-05,4.77586951282928e-05
-CDPR_c,Ribonucleoside-diphosphate reductase,nucleotide metabolism,5.6599070717242e-05,6.48539322799597e-05,4.77586951282928e-05,4.77586951282928e-05
-dCDPK_c,Nucleoside-diphosphate kinase,nucleotide metabolism,5.6599070717242e-05,6.48539322799597e-05,4.77586951282928e-05,4.77586951282928e-05
-Bio_opt,Light limiting biomass,biomass reaction,0.000140214712176722,0.000159047652613371,0.000118314163227203,0.00013146039247467

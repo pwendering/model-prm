@@ -1,3 +1,0 @@
-ReactionID,ReactionName,ReactionSubSystem,minFluxWT,maxFluxWT,minFluxMUT,maxFluxMUT
-GDPK_c,Nucleoside-diphosphate kinase,nucleotide metabolism,0.000175880832216861,0.000175880832216861,0.000148171272374518,0.000148171272374518
-Bio_opt,Light limiting biomass,biomass reaction,0.000434509689749685,0.000434509689749685,0.000366053837577247,0.000406726697308052
