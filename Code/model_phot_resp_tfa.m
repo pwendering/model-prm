@@ -228,6 +228,12 @@ solFBA = optimizeCbModel(model);
 min_obj = roundsd(0.4*solFBA.f, 2, 'floor');
 model.lb(model.c==1) = min_obj;
 
+%% Perform FVA at 90% of the optimum (without oxygenation to carboxylation ratio)
+old_ub = model.lb(model.c==1);
+model.lb(model.c==1) = 0.9*solFBA.f;
+fva_wt = runMinMax(model,model.rxns,'runParallel',PAR_FLAG);
+model.lb(model.c==1) = old_ub;
+
 % Are there any blocked reactions?
 % solver tolerance is 1e-9
 SolTol = 1e-9;
@@ -286,7 +292,7 @@ this_tmodel = addMetabolite(this_tmodel, 'phi_ub',...
     'csense', 'L');
 this_tmodel.S(findMetIDs(this_tmodel, 'phi_ub'), findRxnIDs(this_tmodel, {'NF_RBC_h' 'NF_RBO_h'})) = [-phi-phi_tol 1];
 
-%% Perform FVA at 90% of the optimum
+%% Perform FVA at 90% of the optimum (with oxygenation to carboxylation ratio)
 old_ub = model.lb(model.c==1);
 model.lb(model.c==1) = 0.9*solFBA.f;
 fva_wt = runMinMax(model,model.rxns,'runParallel',PAR_FLAG);
