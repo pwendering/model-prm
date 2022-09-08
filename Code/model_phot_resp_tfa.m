@@ -269,11 +269,12 @@ s_co = [
 f_mol_bar = 2417.20 / 104.90; % Walker et al. (2013) [https://doi.org/10.1111/pce.12166]
 O = 210000;  % Farquhar et al. (1980), Planta
 C = 230;  % Farquhar et al. (1980), Planta
-% phi = 0.27; % Farquhar et al. (1980), Planta
+phi = 0.27; % Farquhar et al. (1980), Planta
+phi_tol = 0.1*phi; % allow 10% variation
 
-phi_array = (1 ./ (f_mol_bar*s_co))*(O/C);
-phi = mean(phi_array);
-phi_tol = 2 * std(phi_array);
+% phi_array = (1 ./ (f_mol_bar*s_co))*(O/C);
+% phi = mean(phi_array);
+% phi_tol = 2 * std(phi_array);
 
 model = addMetabolite(model, 'phi_lb',...
     'csense', 'L');
@@ -283,14 +284,17 @@ model = addMetabolite(model, 'phi_ub',...
     'csense', 'L');
 model.S(findMetIDs(model, 'phi_ub'), findRxnIDs(model, {'RBC_h' 'RBO_h'})) = [-phi-phi_tol 1];
 
+this_tmodel.constraintNames(end+1) = {'phi_lb'};
+this_tmodel.constraintType(end+1) = {'<'};
+this_tmodel.rhs(end+1) = 0;
+this_tmodel.A = [this_tmodel.A; zeros(1, size(this_tmodel.A,2))];
+this_tmodel.A(end, cellfun(@(x)find(ismember(this_tmodel.varNames, x)), {'NF_RBC_h' 'NF_RBO_h'})) = [phi-phi_tol -1];
 
-this_tmodel = addMetabolite(this_tmodel, 'phi_lb',...
-    'csense', 'L');
-this_tmodel.S(findMetIDs(this_tmodel, 'phi_lb'), findRxnIDs(this_tmodel, {'NF_RBC_h' 'NF_RBO_h'})) = [phi-phi_tol -1];
-
-this_tmodel = addMetabolite(this_tmodel, 'phi_ub',...
-    'csense', 'L');
-this_tmodel.S(findMetIDs(this_tmodel, 'phi_ub'), findRxnIDs(this_tmodel, {'NF_RBC_h' 'NF_RBO_h'})) = [-phi-phi_tol 1];
+this_tmodel.constraintNames(end+1) = {'phi_ub'};
+this_tmodel.constraintType(end+1) = {'<'};
+this_tmodel.rhs(end+1) = 0;
+this_tmodel.A = [this_tmodel.A; zeros(1, size(this_tmodel.A,2))];
+this_tmodel.A(end, cellfun(@(x)find(ismember(this_tmodel.varNames, x)), {'NF_RBC_h' 'NF_RBO_h'})) = [-phi-phi_tol 1];
 
 %% Perform FVA at 90% of the optimum (with oxygenation to carboxylation ratio)
 old_ub = model.lb(model.c==1);
