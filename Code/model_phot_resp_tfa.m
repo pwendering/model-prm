@@ -355,6 +355,29 @@ dw_per_l = fw_per_l / fw_per_dw; % [gDW/l]
 % fw_per_l = 1/(vol_per_chl * chl_per_fw);
 % dw_per_l = fw_per_l / fw_per_dw;
 
+%% constrain oxygenation to carboxylation ratio
+s_co = [
+    92 107 89 105,... % Parry et al. (1989) [https://doi.org/10.1093/jxb/40.3.317]
+    82 74 89 93 61 66,... % Zhu et al. (1992) [https://doi.org/10.1104%2Fpp.98.2.764]
+    99.9 100.8 96.2 96 98.7 98.4 97 99.2 98.5 94 100.8 95.6 93.1 99.7,...
+    92.4 95.4 97.0 100.1 97.5 82.2 87.3 84.4]; % Hermida-Carrera et al. (2016) [https://doi.org/10.1104%2Fpp.16.01846]
+f_mol_bar = 2417.20 / 104.90; % Walker et al. (2013) [https://doi.org/10.1111/pce.12166]
+O = 210000;  % Farquhar et al. (1980), Planta
+C = 230;  % Farquhar et al. (1980), Planta
+% phi = 0.27; % Farquhar et al. (1980), Planta
+
+phi_array = (1 ./ (f_mol_bar*s_co))*(O/C);
+phi = mean(phi_array);
+phi_tol = 2 * std(phi_array);
+
+model = addMetabolite(model, 'phi_lb',...
+    'csense', 'L');
+model.S(findMetIDs(model, 'phi_lb'), findRxnIDs(model, {'RBC_h' 'RBO_h'})) = [phi-phi_tol -1];
+
+model = addMetabolite(model, 'phi_ub',...
+    'csense', 'L');
+model.S(findMetIDs(model, 'phi_ub'), findRxnIDs(model, {'RBC_h' 'RBO_h'})) = [-phi-phi_tol 1];
+
 %% loop over timepoints
 for t_idx = 1:numel(tp)
     cmdsz = matlab.desktop.commandwindow.size;
