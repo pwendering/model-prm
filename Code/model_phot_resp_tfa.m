@@ -114,10 +114,10 @@ model.rev = model.lb<0 & model.ub>0;
 
 % Limit the bounds of the fluxes that are higher than 100 or lower than
 % -100 mmol/(gDW * h)
-if any(model.lb<-100) || any(model.ub>100)
-    model.lb(model.lb<-100) = -100;
-    model.ub(model.ub>+100) = +100;
-end
+% if any(model.lb<-100) || any(model.ub>100)
+%     model.lb(model.lb<-100) = -100;
+%     model.ub(model.ub>+100) = +100;
+% end
 
 %% Load the thermodynamics database
 tmp = load(fullfile(data_dir, 'thermo_data.mat'));
@@ -350,7 +350,7 @@ ko_rxns = {...
     };
 
 % light conditions and photon uptake upper bounds
-l_cond = 'fl';%'ml'; %{'ml','fl','ml_fl','fl_ml'};
+l_cond = 'ml';  % {'ml','fl','ml_fl','fl_ml'};
 
 ph_ub = I_ML;
 
