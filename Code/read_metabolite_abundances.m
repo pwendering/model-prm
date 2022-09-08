@@ -5,7 +5,6 @@ filename = fullfile('..','Data','220404_AllData_Photorespiration_TB.xlsx');
 sheet = 'Metabolites ML control';
 [met_table_ml_ctl,av_per_genotype_ml_ctl,genotype_ml_ctl,time_in_shift_ml_ctl] = parseMetaboliteData(filename,sheet);
 
-writet
 % figure
 % plotHeatmap(...
 %     av_per_genotype_ml_ctl,...
