@@ -327,7 +327,7 @@ ko_rxns = {...
     };
 
 % light conditions and photon uptake upper bounds
-l_cond = 'ml'; %{'ml','fl','ml_fl','fl_ml'};
+l_cond = 'fl';%'ml'; %{'ml','fl','ml_fl','fl_ml'};
 
 ph_ub = I_ML;
 
