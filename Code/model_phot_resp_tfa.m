@@ -276,12 +276,10 @@ phi_tol = 0.1*phi; % allow 10% variation
 % phi = mean(phi_array);
 % phi_tol = 2 * std(phi_array);
 
-model = addMetabolite(model, 'phi_lb',...
-    'csense', 'L');
+model = addMetabolite(model, 'phi_lb', 'csense', 'L');
 model.S(findMetIDs(model, 'phi_lb'), findRxnIDs(model, {'RBC_h' 'RBO_h'})) = [phi-phi_tol -1];
 
-model = addMetabolite(model, 'phi_ub',...
-    'csense', 'L');
+model = addMetabolite(model, 'phi_ub', 'csense', 'L');
 model.S(findMetIDs(model, 'phi_ub'), findRxnIDs(model, {'RBC_h' 'RBO_h'})) = [-phi-phi_tol 1];
 
 this_tmodel.constraintNames(end+1) = {'phi_lb'};
@@ -413,8 +411,8 @@ for t_idx = 1:numel(tp)
     nm_idx = cellfun(@isempty,meas_ids);
     meas_ids = meas_ids(~nm_idx);
     
-    met_av_wt = met_av{strcmp(met_av.genotype,'Col-0')&met_av.time==tp(t_idx),3:end};
-    met_sd_wt= met_sd{strcmp(met_av.genotype,'Col-0')&met_av.time==tp(t_idx),3:end};
+    met_av_wt = met_av{strcmp(met_av.genotype,'Col-0') & met_av.time==tp(t_idx),3:end};
+    met_sd_wt = met_sd{strcmp(met_av.genotype,'Col-0') & met_av.time==tp(t_idx),3:end};
     
     % remove data for unmatched metabolites
     met_av_wt = met_av_wt(~nm_idx);
@@ -540,6 +538,7 @@ for t_idx = 1:numel(tp)
             wt_tmodel.f = bio_obj;
             
             if isempty(tfa_wt.x)
+                fprintf('WT thermo model cannot be solved with relaxed metabolite concentration ranges\n')
                 continue
             end
             
@@ -639,6 +638,7 @@ for t_idx = 1:numel(tp)
             mut_tmodel.f = bio_obj;
             
             if isempty(tfa_mut.x)
+                fprintf('Mutant thermo model cannot be solved with relaxed metabolite concentration ranges\n')
                 continue
             end
             
