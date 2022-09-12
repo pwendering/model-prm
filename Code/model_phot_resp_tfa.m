@@ -114,10 +114,10 @@ model.rev = model.lb<0 & model.ub>0;
 
 % Limit the bounds of the fluxes that are higher than 100 or lower than
 % -100 mmol/(gDW * h)
-% if any(model.lb<-100) || any(model.ub>100)
-%     model.lb(model.lb<-100) = -100;
-%     model.ub(model.ub>+100) = +100;
-% end
+if any(model.lb<-100) || any(model.ub>100)
+    model.lb(model.lb<-100) = -100;
+    model.ub(model.ub>+100) = +100;
+end
 
 %% Load the thermodynamics database
 tmp = load(fullfile(data_dir, 'thermo_data.mat'));
@@ -210,10 +210,10 @@ end
 %% photon uptake
 fprintf('Setting photon uptake to 200 umol/m2/s\n')
 LMA = 22.2; % [gDW/m2] (Hummel et al. 2010, doi: 10.1104/pp.110.157008)
-%I_ML = 3600 * 200 / LMA / 1000; % [mmol/gDW/h]
-%I_FL = 3600 * 700 / LMA / 1000; % [mmol/gDW/h] (use kinetic model to integrate fluctuations?)
-I_ML = 1000*200/700; % scale by assuming the 700 uE is saturating
-I_FL = 1000;
+I_ML = 3600 * 200 / LMA / 1000; % [mmol/gDW/h]
+I_FL = 3600 * 700 / LMA / 1000; % [mmol/gDW/h] (use kinetic model to integrate fluctuations?)
+% I_ML = 100*200/700; % scale by assuming the 700 uE is saturating
+% I_FL = 100;
 
 model.ub(findRxnIDs(model,'Im_hnu')) = I_ML;
 
@@ -503,7 +503,7 @@ for t_idx = 1:numel(tp)
         
         for l_idx = 1:numel(ph_ub)
             
-            fprintf('[[ Photon uptake = %d mmol/gDW/h ]]\n',ph_ub(l_idx))
+            fprintf('[[ Photon uptake = %.2g mmol/gDW/h ]]\n',ph_ub(l_idx))
             model.ub(findRxnIDs(model,'Im_hnu')) = ph_ub(l_idx);
             this_tmodel.var_ub(strcmp(this_tmodel.varNames,'F_Im_hnu')) = ph_ub(l_idx);
             
