@@ -318,7 +318,7 @@ t_growth = das * 24; % [h]
 % calculate growth rate
 dw_0 = 20 / 1e6;
 mu = (log(dw.mean_DW) - log(dw_0)) ./ t_growth;
-mu_wt = mu(strcmp(dw.Properties.RowNames,'Col0'));
+mu_wt = mu(~cellfun(@isempty, regexp(dw.Properties.RowNames,'Col?-0')));
 
 mu(mu>mu_wt) = mu_wt;
 
@@ -386,7 +386,7 @@ for t_idx = 1:numel(tp)
     
     met_av_wt = met_av{strcmp(met_av.genotype,'Col-0') & met_av.time==tp(t_idx),3:end};
     met_sd_wt = met_sd{strcmp(met_av.genotype,'Col-0') & met_av.time==tp(t_idx),3:end};
-    
+
     % remove data for unmatched metabolites
     met_av_wt = met_av_wt(~nm_idx);
     met_sd_wt = met_sd_wt(~nm_idx);
