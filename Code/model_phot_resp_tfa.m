@@ -288,10 +288,17 @@ min_conc_limit = min(min(met_ranges{:,2:end}));
 max_conc_limit = max(max(met_ranges{:,2:end}));
 
 % dry weights
+% dw = readtable(...
+%     fullfile(data_dir, data_files{contains(data_files, 'dw_ml_34')}),...
+%     'ReadRowNames', true...
+%     );
+% das = 34;
 dw = readtable(...
-    fullfile(data_dir, data_files{contains(data_files, 'dw_')}),...
+    fullfile(data_dir, data_files{contains(data_files, 'dw_fl_43')}),...
     'ReadRowNames', true...
     );
+das = 43;
+
 
 % net CO2 assimilation rates
 A_ml = readtable(...
@@ -306,7 +313,7 @@ A_max = max([A_fl.mean_A; A_ml.mean_A]);
 
 
 % growth duration
-t_growth = 34 * 24; % [h]
+t_growth = das * 24; % [h]
 
 % calculate growth rate
 dw_0 = 20 / 1e6;
