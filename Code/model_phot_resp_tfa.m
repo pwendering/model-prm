@@ -333,7 +333,7 @@ mu_wt_fl = mu_fl(~cellfun(@isempty, regexp(dw_fl.Properties.RowNames,'Col-?0')))
 
 mu_fl(mu_fl>mu_wt_fl) = mu_wt_fl;
 
-fprintf('Ratio between growth rates in ML and FL conditions: %.3f\n', mu_wt_ml / mu_wt_ml)
+fprintf('Ratio between growth rates in ML and FL conditions: %.3f\n', mu_wt_ml / mu_wt_fl)
 
 % define mutant names and reaction knock-outs
 mutants = {...
