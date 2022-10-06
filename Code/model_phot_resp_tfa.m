@@ -318,7 +318,7 @@ t_growth = das_ml * 24; % [h]
 % calculate growth rate
 dw_0 = 20 / 1e6;
 mu_ml = (log(dw_ml.mean_DW) - log(dw_0)) ./ t_growth;
-mu_wt_ml = mu_ml(~cellfun(@isempty, regexp(dw.Properties.RowNames,'Col?-0')));
+mu_wt_ml = mu_ml(~cellfun(@isempty, regexp(dw_ml.Properties.RowNames,'Col?-0')));
 
 mu_ml(mu_ml>mu_wt_ml) = mu_wt_ml;
 
@@ -329,7 +329,7 @@ t_growth = das_fl * 24; % [h]
 % calculate growth rate
 dw_0 = 20 / 1e6;
 mu_fl = (log(dw_fl.mean_DW) - log(dw_0)) ./ t_growth;
-mu_wt_fl = mu_fl(~cellfun(@isempty, regexp(dw.Properties.RowNames,'Col?-0')));
+mu_wt_fl = mu_fl(~cellfun(@isempty, regexp(dw_fl.Properties.RowNames,'Col?-0')));
 
 mu_fl(mu_fl>mu_wt_fl) = mu_wt_fl;
 
