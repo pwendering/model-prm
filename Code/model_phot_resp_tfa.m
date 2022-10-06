@@ -385,7 +385,10 @@ dw_per_l = fw_per_l / fw_per_dw; % [gDW/l]
 
 %% loop over light conditions
 for lc_idx = 1:numel(l_cond)
-    
+    cmdsz = matlab.desktop.commandwindow.size;
+    fprintf([repmat('-',1,cmdsz(1)) '\n'])
+    fprintf('Light Condition: %s\n', l_cond{lc_idx})
+
     %% loop over timepoints
     for t_idx = 1:numel(tp)
         cmdsz = matlab.desktop.commandwindow.size;
