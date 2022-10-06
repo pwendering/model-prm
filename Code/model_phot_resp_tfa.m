@@ -459,8 +459,13 @@ for lc_idx = 1:numel(l_cond)
             fprintf('>>> Processing genotype %s ...\n', mutants{m_idx})
             
             % determine ratio of growth rates (wt/mutant)
-            biomass_ratio = mu_wt / ...
-                mu(strcmp(dw.Properties.RowNames,mutants{m_idx}));
+            if contains(l_cond(lc_idx), 'ml') && ~contains(l_cond(lc_idx), 'ml_')
+                biomass_ratio = mu_wt_ml / ...
+                    mu_ml(strcmp(dw_ml.Properties.RowNames,mutants{m_idx}));
+            else
+                biomass_ratio = mu_wt_fl / ...
+                    mu_fl(strcmp(dw_fl.Properties.RowNames,mutants{m_idx}));
+            end
             
             %% get metabolite concentration ranges for the mutant
             met_av_mut = met_av{strcmp(met_av.genotype,mutants{m_idx})&met_av.time==tp(t_idx),3:end};
