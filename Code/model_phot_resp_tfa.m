@@ -459,7 +459,7 @@ for lc_idx = 1:numel(l_cond)
             fprintf('>>> Processing genotype %s ...\n', mutants{m_idx})
             
             % determine ratio of growth rates (wt/mutant)
-            if contains(l_cond(lc_idx), 'ml') && ~contains(l_cond(lc_idx), 'ml_')
+            if contains(l_cond(lc_idx), 'ml') || contains(l_cond(lc_idx), 'ml_fl')
                 biomass_ratio = mu_wt_ml / ...
                     mu_ml(strcmp(dw_ml.Properties.RowNames,mutants{m_idx}));
             else
@@ -524,7 +524,7 @@ for lc_idx = 1:numel(l_cond)
                 
                 % if calculated growth rate for FL applies, constrain ratio
                 % of growth rate between ML and FL
-                if contains(l_cond(lc_idx), 'fl') && ~contains(l_cond(lc_idx), 'fl_')
+                if ismember(l_cond(lc_idx), 'fl') || ismember(l_cond(lc_idx), 'fl_ml')
                     wt_tmodel.var_ub(wt_tmodel.f==1) = ref_ml_growth * mu_wt_fl / mu_wt_ml + 1e-10;
                     wt_tmodel.var_lb(wt_tmodel.f==1) = ref_ml_growth * mu_wt_fl / mu_wt_ml - 1e-10;
                 end
