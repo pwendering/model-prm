@@ -678,7 +678,7 @@ for lc_idx = 1:numel(l_cond)
                 text(0.01,0.98,['{\it ' mutants{m_idx} '}'],'units','normalized','fontweight','bold')
                 
                 exportgraphics(tmp_fig,[res_dir filesep 'metabolite_concentration_' mutants{m_idx} ...
-                    '_' l_cond '_timepoint_' num2str(tp(t_idx)) '_phUB_' num2str(ph_ub(l_idx),3) '.png'])
+                    '_' l_cond{lc_idx} '_timepoint_' num2str(tp(t_idx)) '_phUB_' num2str(ph_ub(l_idx),3) '.png'])
                 delete(tmp_fig)
                 
                 % fix metabolite measured metabolite concentrations to newly
