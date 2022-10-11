@@ -228,6 +228,19 @@ solFBA = optimizeCbModel(model);
 min_obj = roundsd(0.4*solFBA.f, 2, 'floor');
 model.lb(model.c==1) = min_obj;
 
+%% Oxygenation to carboxylation ratio
+phi_ml = 0.366;
+phi_tol_ml = 0.087;
+
+phi_fl = 0.329;
+phi_tol_fl = 0.059;
+
+model = addMetabolite(model, 'phi_lb', 'csense', 'L');
+model.S(findMetIDs(model, 'phi_lb'), findRxnIDs(model, {'RBC_h' 'RBO_h'})) = [phi_ml-phi_tol_ml -1];
+
+model = addMetabolite(model, 'phi_ub', 'csense', 'L');
+model.S(findMetIDs(model, 'phi_ub'), findRxnIDs(model, {'RBC_h' 'RBO_h'})) = [-phi_ml-phi_tol_ml 1];
+
 %% Perform FVA at 90% of the optimum
 old_ub = model.lb(model.c==1);
 model.lb(model.c==1) = 0.9*solFBA.f;
@@ -247,6 +260,9 @@ while ~isempty(id_Blocked_in_FBA)
     id_Blocked_in_FBA = find( (fva_wt(:,1)>-SolTol & fva_wt(:,1)<SolTol) & ...
         (fva_wt(:,2)>-SolTol & fva_wt(:,2)<SolTol) );
 end
+% - logical vector with indices for bidirectional reactions (flux ranges crossing zero)
+n = @(x) x(:,1)<-1e-9 & x(:,2)>1e-9;
+is_bd_fva_wt = (n(fva_wt));
 
 %% Prepare for TFA
 %need field for description
@@ -259,28 +275,6 @@ tmp = convToTFA(prepped_m, ReactionDB, [], 'DGo', [], min_obj);
 % NF_rxn = F_rxn - B_rxn
 this_tmodel = addNetFluxVariables(tmp);
 NF_idx = getAllVar(this_tmodel,{'NF'});
-
-%% Oxygenation to carboxylation ratio
-phi_ml = 0.366;
-phi_tol_ml = 0.087;
-
-phi_fl = 0.329;
-phi_tol_fl = 0.059;
-
-model = addMetabolite(model, 'phi_lb', 'csense', 'L');
-model.S(findMetIDs(model, 'phi_lb'), findRxnIDs(model, {'RBC_h' 'RBO_h'})) = [phi_ml-phi_tol_ml -1];
-
-model = addMetabolite(model, 'phi_ub', 'csense', 'L');
-model.S(findMetIDs(model, 'phi_ub'), findRxnIDs(model, {'RBC_h' 'RBO_h'})) = [-phi_ml-phi_tol_ml 1];
-
-%% Perform FVA at 90% of the optimum (with ML oxygenation to carboxylation ratio)
-old_ub = model.lb(model.c==1);
-model.lb(model.c==1) = 0.9*solFBA.f;
-fva_wt = runMinMax(model,model.rxns,'runParallel',PAR_FLAG);
-model.lb(model.c==1) = old_ub;
-% - logical vector with indices for bidirectional reactions (flux ranges crossing zero)
-n = @(x) x(:,1)<-1e-9 & x(:,2)>1e-9;
-is_bd_fva_wt = (n(fva_wt));
 
 %% Read experimental data
 data_dir_struct = dir(data_dir);
@@ -548,17 +542,13 @@ for lc_idx = 1:numel(l_cond)
                 end
                 
                 % add oxygenation to carboxylation ratio
-                wt_tmodel.constraintNames(end+1) = {'phi_lb'};
-                wt_tmodel.constraintType(end+1) = {'<'};
-                wt_tmodel.rhs(end+1) = 0;
-                wt_tmodel.A = [wt_tmodel.A; zeros(1, size(wt_tmodel.A, 2))];
-                wt_tmodel.A(end, cellfun(@(x)find(ismember(wt_tmodel.varNames, x)), {'NF_RBC_h' 'NF_RBO_h'})) = [phi-phi_tol -1];
+                rbc_rxn_idx = cellfun(@(x)find(ismember(wt_tmodel.varNames, x)), {'NF_RBC_h' 'NF_RBO_h'});
                 
-                wt_tmodel.constraintNames(end+1) = {'phi_ub'};
-                wt_tmodel.constraintType(end+1) = {'<'};
-                wt_tmodel.rhs(end+1) = 0;
-                wt_tmodel.A = [wt_tmodel.A; zeros(1, size(wt_tmodel.A, 2))];
-                wt_tmodel.A(end, cellfun(@(x)find(ismember(wt_tmodel.varNames, x)), {'NF_RBC_h' 'NF_RBO_h'})) = [-phi-phi_tol 1];
+                phi_lb_constr_idx = contains(wt_tmodel.constraintNames, 'phi_lb');
+                wt_tmodel.A(phi_lb_constr_idx, rbc_rxn_idx) = [phi-phi_tol -1];
+                
+                phi_lb_constr_idx = contains(wt_tmodel.constraintNames, 'phi_ub');
+                wt_tmodel.A(phi_lb_constr_idx, rbc_rxn_idx) = [-phi-phi_tol 1];
                 
                 % add relaxed metabolite concentration ranges to measured
                 % metabolites
@@ -662,18 +652,13 @@ for lc_idx = 1:numel(l_cond)
                 clear mut_model mutFBASol
                 
                 % add oxygenation to carboxylation ratio
-                mut_tmodel.constraintNames(end+1) = {'phi_lb'};
-                mut_tmodel.constraintType(end+1) = {'<'};
-                mut_tmodel.rhs(end+1) = 0;
-                mut_tmodel.A = [mut_tmodel.A; zeros(1, size(mut_tmodel.A, 2))];
-                mut_tmodel.A(end, cellfun(@(x)find(ismember(wt_tmodel.varNames, x)), {'NF_RBC_h' 'NF_RBO_h'})) = [phi-phi_tol -1];
+                rbc_rxn_idx = cellfun(@(x)find(ismember(wt_tmodel.varNames, x)), {'NF_RBC_h' 'NF_RBO_h'});
                 
-                mut_tmodel.constraintNames(end+1) = {'phi_ub'};
-                mut_tmodel.constraintType(end+1) = {'<'};
-                mut_tmodel.rhs(end+1) = 0;
-                mut_tmodel.A = [mut_tmodel.A; zeros(1, size(mut_tmodel.A, 2))];
-                mut_tmodel.A(end, cellfun(@(x)find(ismember(mut_tmodel.varNames, x)), {'NF_RBC_h' 'NF_RBO_h'})) = [-phi-phi_tol 1];
+                phi_lb_constr_idx = contains(wt_tmodel.constraintNames, 'phi_lb');
+                wt_tmodel.A(phi_lb_constr_idx, rbc_rxn_idx) = [phi-phi_tol -1];
                 
+                phi_lb_constr_idx = contains(wt_tmodel.constraintNames, 'phi_ub');
+                wt_tmodel.A(phi_lb_constr_idx, rbc_rxn_idx) = [-phi-phi_tol 1];
                 
                 % add biomass ratio constraint
                 mut_tmodel.var_ub(mut_tmodel.f==1) = wt_opt / biomass_ratio + 1e-10;
