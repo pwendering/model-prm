@@ -223,29 +223,30 @@ model.c(findRxnIDs(model,'Bio_opt')) = 1;
 model.ub(findRxnIDs(model,{'Bio_CLim','Bio_NLim'})) = 0;
 
 %% Oxygenation to carboxylation ratio
+tmp_model = model;
 phi_ml = 0.366;
 phi_tol_ml = 0.087;
 
 phi_fl = 0.329;
 phi_tol_fl = 0.059;
 
-model = addMetabolite(model, 'phi_lb', 'csense', 'L');
-model.S(findMetIDs(model, 'phi_lb'), findRxnIDs(model, {'RBC_h' 'RBO_h'})) = [phi_ml-phi_tol_ml -1];
+tmp_model = addMetabolite(tmp_model, 'phi_lb', 'csense', 'L');
+tmp_model.S(findMetIDs(tmp_model, 'phi_lb'), findRxnIDs(tmp_model, {'RBC_h' 'RBO_h'})) = [phi_ml-phi_tol_ml -1];
 
-model = addMetabolite(model, 'phi_ub', 'csense', 'L');
-model.S(findMetIDs(model, 'phi_ub'), findRxnIDs(model, {'RBC_h' 'RBO_h'})) = [-phi_ml-phi_tol_ml 1];
+tmp_model = addMetabolite(tmp_model, 'phi_ub', 'csense', 'L');
+tmp_model.S(findMetIDs(tmp_model, 'phi_ub'), findRxnIDs(tmp_model, {'RBC_h' 'RBO_h'})) = [-phi_ml-phi_tol_ml 1];
 
 %% Test simple fba
-solFBA = optimizeCbModel(model);
+solFBA = optimizeCbModel(tmp_model);
 % We can set a lower bound for growth (e.g. 50% of maximal growth)
 min_obj = roundsd(0.4*solFBA.f, 2, 'floor');
-model.lb(model.c==1) = min_obj;
+tmp_model.lb(tmp_model.c==1) = min_obj;
 
 %% Perform FVA at 90% of the optimum
-old_ub = model.lb(model.c==1);
-model.lb(model.c==1) = 0.9*solFBA.f;
-fva_wt = runMinMax(model,model.rxns,'runParallel',PAR_FLAG);
-model.lb(model.c==1) = old_ub;
+old_ub = tmp_model.lb(tmp_model.c==1);
+tmp_model.lb(tmp_model.c==1) = 0.9*solFBA.f;
+fva_wt = runMinMax(tmp_model, tmp_model.rxns, 'runParallel', PAR_FLAG);
+tmp_model.lb(tmp_model.c==1) = old_ub;
 
 % Are there any blocked reactions?
 % solver tolerance is 1e-9
@@ -255,8 +256,11 @@ id_Blocked_in_FBA = find( (fva_wt(:,1)>-SolTol & fva_wt(:,1)<SolTol) & ...
 % If there exist block reactions
 while ~isempty(id_Blocked_in_FBA)
     % remove them
+    tmp_model = removeRxns(tmp_model, tmp_model.rxns(id_Blocked_in_FBA));
+    % remove them also in the original model as phi constraints will be
+    % added later on
     model = removeRxns(model, model.rxns(id_Blocked_in_FBA));
-    fva_wt = runMinMax(model,model.rxns,'runParallel',PAR_FLAG);
+    fva_wt = runMinMax(tmp_model, tmp_model.rxns, 'runParallel', PAR_FLAG);
     id_Blocked_in_FBA = find( (fva_wt(:,1)>-SolTol & fva_wt(:,1)<SolTol) & ...
         (fva_wt(:,2)>-SolTol & fva_wt(:,2)<SolTol) );
 end
@@ -269,7 +273,22 @@ is_bd_fva_wt = (n(fva_wt));
 prepped_m = prepModelforTFA(model, ReactionDB, model.CompartmentData);
 
 %% Convert to TFA
-tmp = convToTFA(prepped_m, ReactionDB, [], 'DGo', [], min_obj);
+tmp = convToTFA(prepped_m, ReactionDB, [], 'NO', [], min_obj);
+
+tmp.constraintNames(end+1) = {'phi_lb'};
+tmp.constraintType(end+1) = {'<'};
+tmp.rhs(end+1) = 0;
+tmp.A = [tmp.A; zeros(1, size(tmp.A,2))];
+tmp.A(end, cellfun(@(x)find(ismember(tmp.varNames, x)), {'F_RBC_h' 'F_RBO_h'})) = [phi_ml-phi_tol_ml -1];
+
+tmp.constraintNames(end+1) = {'phi_ub'};
+tmp.constraintType(end+1) = {'<'};
+tmp.rhs(end+1) = 0;
+tmp.A = [tmp.A; zeros(1, size(tmp.A,2))];
+tmp.A(end, cellfun(@(x)find(ismember(tmp.varNames, x)), {'F_RBC_h' 'F_RBO_h'})) = [-phi_ml-phi_tol_ml 1];
+
+% now relax Dgo
+tmp = relaxModelWithDGoSlacks(tmp, min_obj, []);
 
 % Add net flux variables, which are equal to forwards flux - backwards flux
 % NF_rxn = F_rxn - B_rxn
