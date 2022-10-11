@@ -222,12 +222,6 @@ model.c(:) = 0;
 model.c(findRxnIDs(model,'Bio_opt')) = 1;
 model.ub(findRxnIDs(model,{'Bio_CLim','Bio_NLim'})) = 0;
 
-%% Test simple fba
-solFBA = optimizeCbModel(model);
-% We can set a lower bound for growth (e.g. 50% of maximal growth)
-min_obj = roundsd(0.4*solFBA.f, 2, 'floor');
-model.lb(model.c==1) = min_obj;
-
 %% Oxygenation to carboxylation ratio
 phi_ml = 0.366;
 phi_tol_ml = 0.087;
@@ -240,6 +234,12 @@ model.S(findMetIDs(model, 'phi_lb'), findRxnIDs(model, {'RBC_h' 'RBO_h'})) = [ph
 
 model = addMetabolite(model, 'phi_ub', 'csense', 'L');
 model.S(findMetIDs(model, 'phi_ub'), findRxnIDs(model, {'RBC_h' 'RBO_h'})) = [-phi_ml-phi_tol_ml 1];
+
+%% Test simple fba
+solFBA = optimizeCbModel(model);
+% We can set a lower bound for growth (e.g. 50% of maximal growth)
+min_obj = roundsd(0.4*solFBA.f, 2, 'floor');
+model.lb(model.c==1) = min_obj;
 
 %% Perform FVA at 90% of the optimum
 old_ub = model.lb(model.c==1);
