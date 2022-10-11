@@ -256,7 +256,7 @@ id_Blocked_in_FBA = find( (fva_wt(:,1)>-SolTol & fva_wt(:,1)<SolTol) & ...
 while ~isempty(id_Blocked_in_FBA)
     % remove them
     model = removeRxns(model, model.rxns(id_Blocked_in_FBA));
-    fva_wt = runMinMax(model,'runParallel',PAR_FLAG);
+    fva_wt = runMinMax(model,model.rxns,'runParallel',PAR_FLAG);
     id_Blocked_in_FBA = find( (fva_wt(:,1)>-SolTol & fva_wt(:,1)<SolTol) & ...
         (fva_wt(:,2)>-SolTol & fva_wt(:,2)<SolTol) );
 end
