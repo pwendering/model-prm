@@ -561,7 +561,7 @@ for lc_idx = 1:numel(l_cond)
                 end
                 
                 % add oxygenation to carboxylation ratio
-                rbc_rxn_idx = cellfun(@(x)find(ismember(wt_tmodel.varNames, x)), {'NF_RBC_h' 'NF_RBO_h'});
+                rbc_rxn_idx = cellfun(@(x)find(ismember(wt_tmodel.varNames, x)), {'F_RBC_h' 'F_RBO_h'});
                 
                 phi_lb_constr_idx = contains(wt_tmodel.constraintNames, 'phi_lb');
                 wt_tmodel.A(phi_lb_constr_idx, rbc_rxn_idx) = [phi-phi_tol -1];
@@ -671,7 +671,7 @@ for lc_idx = 1:numel(l_cond)
                 clear mut_model mutFBASol
                 
                 % add oxygenation to carboxylation ratio
-                rbc_rxn_idx = cellfun(@(x)find(ismember(wt_tmodel.varNames, x)), {'NF_RBC_h' 'NF_RBO_h'});
+                rbc_rxn_idx = cellfun(@(x)find(ismember(wt_tmodel.varNames, x)), {'F_RBC_h' 'F_RBO_h'});
                 
                 phi_lb_constr_idx = contains(wt_tmodel.constraintNames, 'phi_lb');
                 wt_tmodel.A(phi_lb_constr_idx, rbc_rxn_idx) = [phi-phi_tol -1];
