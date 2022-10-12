@@ -634,7 +634,7 @@ for lc_idx = 1:numel(l_cond)
                 
                 % solve pFBA problem
                 wt_pfba_sol = solveTFAmodelCplex(wt_tmodel_pfba);
-                wt_pfba_obj_val = wt_pfba_sol.f;
+                wt_pfba_obj_val = sum(wt_pfba_sol.x(wt_tmodel_pfba.f==1));
                 wt_pfba_flux = wt_pfba_sol.x;
                 
                 fprintf('WT pFBA optimal value: %.4g\n', wt_pfba_obj_val)
@@ -755,7 +755,7 @@ for lc_idx = 1:numel(l_cond)
                 
                 % solve minimization problem
                 mut_wt_dist_sol = solveTFAmodelCplex(mut_tmodel_min_dist_wt);
-                mut_wt_dist_opt = mut_wt_dist_sol.f;
+                mut_wt_dist_opt = sum(mut_wt_dist_sol.x(mut_tmodel_min_dist_wt.f==1));
                 
                 fprintf('Minimum NF distance to WT: %.4g\n', mut_wt_dist_opt)
                 
