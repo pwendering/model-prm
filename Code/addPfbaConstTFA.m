@@ -22,7 +22,7 @@ delta_mat(1:n_nf, nf_idx) = 1;
 
 % append new matrix to existing matrix of TFA problem
 pfba_model = model;
-pfba_model.A = [pfba_model.A; delta_mat];
+pfba_model.A = [[pfba_model.A zeros(size(pfba_model.A, 1), 2*n_nf)]; delta_mat];
 
 % add additional information for constraints and variables
 pfba_model.rhs = [pfba_model.rhs; zeros(n_nf, 1)];
