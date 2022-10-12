@@ -41,7 +41,7 @@ pfba_model.var_lb = [pfba_model.var_lb; zeros(2*n_nf, 1)];
 pfba_model.var_ub = [pfba_model.var_ub; repelem(1000, 2*n_nf, 1)];
 pfba_model.vartypes = [pfba_model.vartypes; repmat({'C'}, 2*n_nf, 1)];
 % set objective to minimization of deltas
-pfba_model.f = [zeros(size(model.f)) ones(2*n_nf, 1)];
+pfba_model.f = [zeros(size(model.f)); ones(2*n_nf, 1)];
 
 % set objective sense to minimization
 pfba_model.objtype = 1;
