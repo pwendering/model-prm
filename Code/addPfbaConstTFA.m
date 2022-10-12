@@ -11,7 +11,7 @@ function pfba_model = addPfbaConstTFA(model, rhsVector)
 %   struct pfba_model:      TFA model with pFBA constraints
 
 % find net flux variables
-nf_idx = startsWith(model.varNames, 'NF_');
+nf_idx = find(startsWith(model.varNames, 'NF_'));
 n_nf = sum(nf_idx);
 
 if nargin < 2 || isempty(rhsVector)
@@ -24,7 +24,7 @@ end
 % existing constraint matrix
 delta_mat = [zeros(n_nf, size(model.A,2)) -eye(n_nf) eye(n_nf)];
 % fill in ones for NF reaction indices
-delta_mat(:, nf_idx) = 1;
+delta_mat(:, nf_idx) = eye(n_nf);
 
 % append new matrix to existing matrix of TFA problem
 pfba_model = model;
