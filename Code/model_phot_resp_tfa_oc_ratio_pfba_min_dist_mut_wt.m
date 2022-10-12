@@ -366,7 +366,7 @@ ko_rxns = {...
 
 % light conditions and photon uptake upper bounds
 % ML must be the first condition because ML reference growth must be
-% predicted fist 
+% predicted fist
 l_cond = {'ml','fl','ml_fl','fl_ml'};
 
 ph_ub = I_ML;
@@ -400,7 +400,7 @@ for lc_idx = 1:numel(l_cond)
     cmdsz = matlab.desktop.commandwindow.size;
     fprintf([repmat('-',1,cmdsz(1)) '\n'])
     fprintf('Light Condition: %s\n', l_cond{lc_idx})
-
+    
     %% loop over timepoints
     for t_idx = 1:numel(tp)
         cmdsz = matlab.desktop.commandwindow.size;
@@ -556,19 +556,24 @@ for lc_idx = 1:numel(l_cond)
                 phi_lb_constr_idx = contains(wt_tmodel.constraintNames, 'phi_ub');
                 wt_tmodel.A(phi_lb_constr_idx, rbc_rxn_idx) = [-phi-phi_tol 1];
                 
+                % solve wt model to get maximum predicted growth rate
+                bio_obj = wt_tmodel.f;
+                tfa_wt = solveTFAmodelCplex(wt_tmodel);
+                wt_tmodel.var_lb(wt_tmodel.f==1) = 0.99*tfa_wt.x(bio_obj==1);
+                
                 % add relaxed metabolite concentration ranges to measured
                 % metabolites
                 wt_tmodel = addRelaxedMetConcRanges(wt_tmodel,LC_varNames,log(C_lb_wt),log(C_ub_wt));
                 
                 % add minimization objective for relaxation variables
-                bio_obj = wt_tmodel.f;
-                wt_tmodel.f(startsWith(wt_tmodel.varNames,'EPS_')) = -1;
+                wt_tmodel.f(startsWith(wt_tmodel.varNames,'EPS_')) = -1e-3;
                 
                 % solve TFA
-                tfa_wt = solveTFAmodelCplex(wt_tmodel);             
+                tfa_wt = solveTFAmodelCplex(wt_tmodel);
                 
                 % reset model objective
-                wt_tmodel.f = bio_obj;
+                wt_tmodel.f(:) = 0;
+                wt_tmodel.f(bio_obj==1) = 1;
                 
                 if isempty(tfa_wt.x)
                     fprintf('WT thermo model cannot be solved with relaxed metabolite concentration ranges\n')
@@ -619,7 +624,7 @@ for lc_idx = 1:numel(l_cond)
                     fprintf('Growth optimization with fixed metabolite concentrations not successful\n')
                     wt_opt = tfa_wt.x(wt_tmodel.f==1);
                 end
-
+                
                 % save optimal growth rate for ML condition
                 if lc_idx==1
                     ref_ml_growth = wt_opt;
@@ -690,7 +695,7 @@ for lc_idx = 1:numel(l_cond)
                 % add biomass ratio constraint
                 mut_tmodel.var_ub(mut_tmodel.f==1) = wt_opt / biomass_ratio + 1e-10;
                 mut_tmodel.var_lb(mut_tmodel.f==1) = wt_opt / biomass_ratio - 1e-10;
-                
+
                 % add relaxed metabolite concentration ranges to measured
                 % metabolites
                 mut_tmodel = addRelaxedMetConcRanges(mut_tmodel,LC_varNames,log(C_lb_mut),log(C_ub_mut));
@@ -703,7 +708,8 @@ for lc_idx = 1:numel(l_cond)
                 tfa_mut = solveTFAmodelCplex(mut_tmodel);
                 
                 % reset model objective
-                mut_tmodel.f = bio_obj;
+                mut_tmodel.f(:) = 0;
+                mut_tmodel.f(bio_obj==1) = 1;
                 
                 if isempty(tfa_mut.x)
                     fprintf('Mutant thermo model cannot be solved with relaxed metabolite concentration ranges\n')
