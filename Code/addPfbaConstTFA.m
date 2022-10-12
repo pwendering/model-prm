@@ -11,7 +11,7 @@ function pfba_model = addPfbaConstTFA(model, rhsVector)
 %   struct pfba_model:      TFA model with pFBA constraints
 
 % find net flux variables
-nf_idx = find(startsWith(model.varNames, 'NF_'));
+nf_idx = startsWith(model.varNames, 'NF_');
 n_nf = sum(nf_idx);
 
 if nargin < 2 || isempty(rhsVector)
