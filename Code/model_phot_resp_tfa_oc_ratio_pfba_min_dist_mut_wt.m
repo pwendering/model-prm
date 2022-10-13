@@ -652,7 +652,7 @@ for lc_idx = 1:numel(l_cond)
                     CLHS, 1.01*wt_pfba_obj_val);
                 
                 % set lower bound for biomass to 90% of optimal value
-                wt_tmodel_pfba.var_lb(bio_obj) = 0.9*wt_opt;
+                wt_tmodel_pfba.var_lb(bio_obj==1) = 0.9*wt_opt;
                 
                 % Run tva with the data
                 fprintf('Running variability analysis\n')
@@ -773,7 +773,7 @@ for lc_idx = 1:numel(l_cond)
                     CLHS, 1.01*mut_wt_dist_opt);
                 
                 % set lower bound for biomass to 90% of optimal value
-                mut_tmodel_min_dist_wt.var_lb(bio_obj) = 0.90*(wt_opt / biomass_ratio) - 1e-10;
+                mut_tmodel_min_dist_wt.var_lb(bio_obj==1) = 0.90*(wt_opt / biomass_ratio) - 1e-10;
                 
                 % Run tva with the data
                 fprintf('Running variability analysis\n')
