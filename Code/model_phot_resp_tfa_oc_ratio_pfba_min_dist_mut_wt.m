@@ -646,8 +646,8 @@ for lc_idx = 1:numel(l_cond)
                 
                 % fix the optimal (minimal) sum of fluxes before sampling
                 CLHS.varIDs = 1:size(wt_tmodel_pfba.A, 2);
-                CLHS.varCoeffs = [zeros(1, size(this_tmodel.A, 2)) ...
-                    ones(1, size(wt_tmodel.A, 2) - size(wt_tmodel_pfba.A, 2))];
+                CLHS.varCoeffs = [zeros(1, size(wt_tmodel.A, 2)) ...
+                    ones(1, size(wt_tmodel_pfba.A, 2) - size(wt_tmodel.A, 2))];
                 wt_tmodel_pfba = addNewConstraintInTFA(wt_tmodel_pfba, 'sum_pFBA', '<',...
                     CLHS, 1.01*wt_pfba_obj_val);
                 
@@ -768,7 +768,7 @@ for lc_idx = 1:numel(l_cond)
                 % fix the optimal (minimal) sum of fluxes before sampling
                 CLHS.varIDs = 1:size(mut_tmodel_min_dist_wt.A, 2);
                 CLHS.varCoeffs = [zeros(1, size(mut_tmodel.A, 2)) ...
-                    ones(1, size(mut_tmodel.A, 2) - size(mut_tmodel_min_dist_wt.A, 2))];
+                    ones(1, size(mut_tmodel_min_dist_wt.A, 2) - size(mut_tmodel.A, 2))];
                 mut_tmodel_min_dist_wt = addNewConstraintInTFA(mut_tmodel_min_dist_wt, 'min_dist_wt', '<',...
                     CLHS, 1.01*mut_wt_dist_opt);
                 
