@@ -32,11 +32,11 @@ pfba_model.A = [[pfba_model.A zeros(size(pfba_model.A, 1), 2*n_nf)]; delta_mat];
 
 % add additional information for constraints and variables
 pfba_model.rhs = [pfba_model.rhs; rhsVector];
-pfba_model.constraintNames = [pfba_model.constraintNames; strcat(model.varNames(nf_idx), '_pfba')];
+pfba_model.constraintNames = [pfba_model.constraintNames; strcat('pfba_', model.varNames(nf_idx))];
 pfba_model.constraintType = [pfba_model.constraintType; repelem({'='}, n_nf, 1)];
 
-pfba_model.varNames = [pfba_model.varNames; strcat(pfba_model.varNames(nf_idx), '_delta_plus');...
-    strcat(pfba_model.varNames(nf_idx), '_delta_minus')];
+pfba_model.varNames = [pfba_model.varNames; strcat('delta_plus_', pfba_model.varNames(nf_idx));...
+    strcat('delta_minus_', pfba_model.varNames(nf_idx))];
 pfba_model.var_lb = [pfba_model.var_lb; zeros(2*n_nf, 1)];
 pfba_model.var_ub = [pfba_model.var_ub; repelem(1000, 2*n_nf, 1)];
 pfba_model.vartypes = [pfba_model.vartypes; repmat({'C'}, 2*n_nf, 1)];
