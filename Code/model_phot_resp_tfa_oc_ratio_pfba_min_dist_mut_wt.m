@@ -239,7 +239,7 @@ tmp_model.S(findMetIDs(tmp_model, 'phi_ub'), findRxnIDs(tmp_model, {'RBC_h' 'RBO
 %% Test simple fba
 solFBA = optimizeCbModel(tmp_model);
 % We can set a lower bound for growth (e.g. 50% of maximal growth)
-min_obj = roundsd(0.4*solFBA.f, 2, 'floor');
+min_obj = roundsd(0.5*solFBA.f, 2, 'floor');
 tmp_model.lb(tmp_model.c==1) = min_obj;
 
 %% Perform FVA at 90% of the optimum
