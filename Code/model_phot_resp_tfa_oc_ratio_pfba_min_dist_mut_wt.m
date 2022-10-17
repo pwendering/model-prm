@@ -557,7 +557,7 @@ for lc_idx = 1:numel(l_cond)
             %% Solve TFA for wild type model
             wt_tmodel = this_tmodel;
             
-            if m == 1
+            if m_idx == 1
                 % if calculated growth rate for FL applies, constrain ratio
                 % of growth rate between ML and FL
                 if ismember(l_cond(lc_idx), 'fl') || ismember(l_cond(lc_idx), 'fl_ml')
