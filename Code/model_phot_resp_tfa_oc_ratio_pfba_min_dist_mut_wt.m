@@ -751,7 +751,7 @@ for lc_idx = 1:numel(l_cond)
                 LC_varNames));
             
             % add second panel to figure
-            nexttile
+            nexttile(2)
             labels = categorical(strrep(erase(LC_varNames,'LC_'),'_','\_'));
             arrayfun(@(i)line([labels(i) labels(i)],[C_lb_mut(i) C_ub_mut(i)],'linewidth',4,'color','k'),1:numel(LC_varNames))
             hold on
@@ -767,7 +767,7 @@ for lc_idx = 1:numel(l_cond)
 
             exportgraphics(tmp_fig,[res_dir filesep 'metabolite_concentration_' mutants{m_idx} ...
                 '_' l_cond{lc_idx} '_timepoint_' num2str(tp(t_idx)) '_phUB_' num2str(ph_ub,3) '.png'])
-            delete(tmp_fig)
+            
             
             % fix metabolite measured metabolite concentrations to newly
             % obtained values with 10% tolerance
@@ -946,5 +946,6 @@ for lc_idx = 1:numel(l_cond)
                 '_t_' num2str(tp(t_idx)) ...
                 '_pHUB_' num2str(ph_ub,3) '.csv'])
         end
+        delete(tmp_fig)
     end
 end
