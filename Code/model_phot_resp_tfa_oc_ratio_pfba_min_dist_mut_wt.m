@@ -764,8 +764,7 @@ for lc_idx = 1:numel(l_cond)
                 'location','southeast')
             ylabel('TFA metabolite concentration [M]','FontSize',14)
             text(0.01,0.98,['{\it ' mutants{m_idx} '}'],'units','normalized','fontweight','bold')
-            set(gcf, 'units', 'normalized', 'outerposition', [0 0 1 1])
-            pause(5)
+
             exportgraphics(tmp_fig,[res_dir filesep 'metabolite_concentration_' mutants{m_idx} ...
                 '_' l_cond{lc_idx} '_timepoint_' num2str(tp(t_idx)) '_phUB_' num2str(ph_ub,3) '.png'])
             delete(tmp_fig)
