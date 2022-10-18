@@ -819,7 +819,7 @@ for lc_idx = 1:numel(l_cond)
             % type flux distribution
             wt_net_fluxes = wt_pfba_flux(startsWith(mut_tmodel.varNames, 'NF_'));
             % remove NF for biomass reaction
-            wt_net_fluxes(mut_tmodel.f==1) = [];
+            wt_net_fluxes(startsWith(wt_tmodel.varNames(NF_idx), 'NF_Bio_opt')) = [];
             mut_tmodel_min_dist_wt = addPfbaConstTFA(mut_tmodel, wt_net_fluxes);
             
             % solve minimization problem
