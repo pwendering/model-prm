@@ -605,10 +605,10 @@ for lc_idx = 1:numel(l_cond)
                     min_hnu = solveTFAmodelCplex(wt_tmodel);
                     fprintf('Setting photon uptake to minimum required value of %.4g (from %.4g)\n',...
                         min_hnu.val, ph_ub)
-                    ph_ub = min_hnu.val;
+                    ph_ub = min_hnu.val + 1e-6;
                     clear min_hnu
                     % update photon uptake bound
-                    wt_tmodel.var_ub(strcmp(wt_tmodel.varNames,'F_Im_hnu')) = ph_ub + 1e-6;
+                    wt_tmodel.var_ub(strcmp(wt_tmodel.varNames,'F_Im_hnu')) = ph_ub;
                     % reset objective
                     wt_tmodel.f(:) = 0;
                     wt_tmodel.f(bio_obj==1) = 1;
