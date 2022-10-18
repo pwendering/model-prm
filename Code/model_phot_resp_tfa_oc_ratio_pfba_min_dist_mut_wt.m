@@ -304,7 +304,6 @@ NF_idx = getAllVar(this_tmodel,{'NF'});
 
 % since this function sets all upper bounds of NF reactions to 100, set them to 1000
 this_tmodel.var_ub(NF_idx) = 1000;
-this_tmodel.var_lb(NF_idx) = -1000;
 
 this_tmodel.constraintNames(end+1) = {'phi_lb'};
 this_tmodel.constraintType(end+1) = {'<'};
