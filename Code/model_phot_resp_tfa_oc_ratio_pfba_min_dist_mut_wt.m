@@ -266,7 +266,7 @@ tmp_model.lb(tmp_model.c==1) = min_obj;
 
 %% Perform FVA at 100% of the optimum
 old_ub = tmp_model.lb(tmp_model.c==1);
-tmp_model.lb(tmp_model.c==1) = solFBA.f - 1e-9;
+tmp_model.lb(tmp_model.c==1) = (1-1e-6)*solFBA.f;
 fva_wt = runMinMax(tmp_model, tmp_model.rxns, 'runParallel', PAR_FLAG);
 tmp_model.lb(tmp_model.c==1) = old_ub;
 
@@ -566,8 +566,8 @@ for lc_idx = 1:numel(l_cond)
                 % if calculated growth rate for FL applies, constrain ratio
                 % of growth rate between ML and FL
                 if ismember(l_cond(lc_idx), 'fl') || ismember(l_cond(lc_idx), 'fl_ml')
-                    wt_tmodel.var_ub(wt_tmodel.f==1) = ref_ml_growth * mu_wt_fl / mu_wt_ml + 1e-9;
-                    wt_tmodel.var_lb(wt_tmodel.f==1) = ref_ml_growth * mu_wt_fl / mu_wt_ml - 1e-9;
+                    wt_tmodel.var_ub(wt_tmodel.f==1) = (1+1e-6) * ref_ml_growth * mu_wt_fl / mu_wt_ml;
+                    wt_tmodel.var_lb(wt_tmodel.f==1) = (1-1e-6) * ref_ml_growth * mu_wt_fl / mu_wt_ml;
                     
                     phi = phi_fl;
                     phi_tol = phi_tol_fl;
@@ -605,7 +605,7 @@ for lc_idx = 1:numel(l_cond)
                     min_hnu = solveTFAmodelCplex(wt_tmodel);
                     fprintf('Setting photon uptake to minimum required value of %.4g (from %.4g)\n',...
                         min_hnu.val, ph_ub)
-                    ph_ub = min_hnu.val + 1e-6;
+                    ph_ub = (1+1e-6)*min_hnu.val;
                     clear min_hnu
                     % update photon uptake bound
                     wt_tmodel.var_ub(strcmp(wt_tmodel.varNames,'F_Im_hnu')) = ph_ub;
@@ -614,7 +614,7 @@ for lc_idx = 1:numel(l_cond)
                     wt_tmodel.f(bio_obj==1) = 1;
                     wt_tmodel.objtype = -1;
                 else
-                    wt_tmodel.var_lb(wt_tmodel.f==1) = tfa_wt.x(bio_obj==1) - 1e-9;
+                    wt_tmodel.var_lb(wt_tmodel.f==1) = (1-1e-6)*tfa_wt.x(bio_obj==1);
                 end
                 
                 % add relaxed metabolite concentration ranges to measured
@@ -688,7 +688,7 @@ for lc_idx = 1:numel(l_cond)
                 
                 % minimize the sum of absolute net fluxes at optimal
                 % biomass predicted by TFA
-                wt_tmodel.var_lb(wt_tmodel.f==1) = wt_opt - 1e-9;
+                wt_tmodel.var_lb(wt_tmodel.f==1) = (1-1e-6)*wt_opt;
                 
                 % add pFBA constraints to TFA problem
                 wt_tmodel_pfba = addPfbaConstTFA(wt_tmodel);
@@ -737,7 +737,7 @@ for lc_idx = 1:numel(l_cond)
             mut_model.lb(ismember(mut_model.rxns,ko_rxns{m_idx})) = 0;
             mut_model.ub(ismember(mut_model.rxns,ko_rxns{m_idx})) = 0;
             mutFBASol = optimizeCbModel(mut_model);
-            mut_model.lb(mut_model.c==1) = mutFBASol.f - 1e-9;
+            mut_model.lb(mut_model.c==1) = (1-1e-6)*mutFBASol.f;
             fva_mut = runMinMax(mut_model,mut_model.rxns,'runParallel',PAR_FLAG);
             is_bd_fva_mut = (n(fva_mut));
             clear mut_model mutFBASol
@@ -752,8 +752,8 @@ for lc_idx = 1:numel(l_cond)
             mut_tmodel.A(phi_lb_constr_idx, rbc_rxn_idx) = [-phi-phi_tol 1];
             
             % add biomass ratio constraint
-            mut_tmodel.var_ub(mut_tmodel.f==1) = wt_opt / biomass_ratio + 1e-9;
-            mut_tmodel.var_lb(mut_tmodel.f==1) = wt_opt / biomass_ratio - 1e-9;
+            mut_tmodel.var_ub(mut_tmodel.f==1) = (1+1e-6) * wt_opt / biomass_ratio;
+            mut_tmodel.var_lb(mut_tmodel.f==1) = (1-1e-6) * wt_opt / biomass_ratio;
             
             % add relaxed metabolite concentration ranges to measured
             % metabolites
