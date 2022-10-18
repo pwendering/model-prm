@@ -583,6 +583,27 @@ for lc_idx = 1:numel(l_cond)
                 % solve wt model to get maximum predicted growth rate
                 bio_obj = wt_tmodel.f;
                 tfa_wt = solveTFAmodelCplex(wt_tmodel);
+                
+                if isempty(tfa_wt.x) && (ismember(l_cond(lc_idx), 'fl') || ismember(l_cond(lc_idx), 'fl_ml'))
+                    fprintf('FL wild type growth rate could not be achieved using current photon uptake\n')
+                    % set photon uptake to maximum
+                    wt_tmodel.var_ub(strcmp(wt_tmodel.varNames,'F_Im_hnu')) = 1000;
+                    % minimize photon uptake at fixed growth rate
+                    wt_tmodel.f(:) = 0;
+                    wt_tmodel.f(strcmp(wt_tmodel.varNames,'F_Im_hnu')) = 1;
+                    wt_tmodel.objtype = 1;
+                    min_hnu = solveTFAmodelCplex(wt_tmodel);
+                    fprintf('Setting photon uptake to minimum required value of %.4g (from %.4g)\n',...
+                        min_hnu.val, ph_ub)
+                    % update photon uptake bound
+                    wt_tmodel.var_ub(strcmp(wt_tmodel.varNames,'F_Im_hnu')) = min_hnu.val;
+                    % reset objective
+                    wt_tmodel.f(:) = 0;
+                    wt_tmodel.f(bio_obj==1) = 1;
+                    wt_tmodel.objtype = -1;
+                end
+                
+                
                 wt_tmodel.var_lb(wt_tmodel.f==1) = 0.99*tfa_wt.x(bio_obj==1);
                 
                 % add relaxed metabolite concentration ranges to measured
