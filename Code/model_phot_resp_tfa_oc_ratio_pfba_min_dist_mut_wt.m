@@ -608,7 +608,7 @@ for lc_idx = 1:numel(l_cond)
                     ph_ub = min_hnu.val;
                     clear min_hnu
                     % update photon uptake bound
-                    wt_tmodel.var_ub(strcmp(wt_tmodel.varNames,'F_Im_hnu')) = ph_ub;
+                    wt_tmodel.var_ub(strcmp(wt_tmodel.varNames,'F_Im_hnu')) = ph_ub + 1e-6;
                     % reset objective
                     wt_tmodel.f(:) = 0;
                     wt_tmodel.f(bio_obj==1) = 1;
