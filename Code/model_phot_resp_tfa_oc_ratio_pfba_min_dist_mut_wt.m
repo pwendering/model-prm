@@ -424,6 +424,13 @@ for lc_idx = 1:numel(l_cond)
     fprintf([repmat('-',1,cmdsz(1)) '\n'])
     fprintf('Light Condition: %s\n', l_cond{lc_idx})
     
+    % select photon uptake UB depending on light condition
+    if contains(l_cond(lc_idx), 'ml') || contains(l_cond(lc_idx), 'ml_fl')
+        ph_ub = I_ML;
+    else
+        ph_ub = I_FL;
+    end
+    
     %% loop over timepoints
     for t_idx = 1:numel(tp)
         cmdsz = matlab.desktop.commandwindow.size;
@@ -497,11 +504,9 @@ for lc_idx = 1:numel(l_cond)
             if contains(l_cond(lc_idx), 'ml') || contains(l_cond(lc_idx), 'ml_fl')
                 biomass_ratio = mu_wt_ml / ...
                     mu_ml(strcmp(dw_ml.Properties.RowNames,mutants{m_idx}));
-                ph_ub = I_ML;
             else
                 biomass_ratio = mu_wt_fl / ...
                     mu_fl(strcmp(dw_fl.Properties.RowNames,mutants{m_idx}));
-                ph_ub = I_FL;
             end
             
             %% get metabolite concentration ranges for the mutant
