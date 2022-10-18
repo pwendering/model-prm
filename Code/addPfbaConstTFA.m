@@ -12,6 +12,8 @@ function pfba_model = addPfbaConstTFA(model, rhsVector)
 
 % find net flux variables
 nf_idx = startsWith(model.varNames, 'NF_');
+% exlude biomass reaction
+nf_idx(model.f==1) = 0;
 n_nf = sum(nf_idx);
 
 if nargin < 2 || isempty(rhsVector)

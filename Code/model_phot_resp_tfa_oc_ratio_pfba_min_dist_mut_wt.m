@@ -805,7 +805,6 @@ for lc_idx = 1:numel(l_cond)
             exportgraphics(tmp_fig,[res_dir filesep 'metabolite_concentration_' mutants{m_idx} ...
                 '_' l_cond{lc_idx} '_timepoint_' num2str(tp(t_idx)) '_phUB_' num2str(ph_ub,3) '.png'])
             
-            
             % fix metabolite measured metabolite concentrations to newly
             % obtained values with 10% tolerance
             mut_tmodel.var_lb(cellfun(@(x)find(ismember(mut_tmodel.varNames,x)),...
@@ -819,6 +818,8 @@ for lc_idx = 1:numel(l_cond)
             % add constraints that minimize the distance to the wild
             % type flux distribution
             wt_net_fluxes = wt_pfba_flux(startsWith(mut_tmodel.varNames, 'NF_'));
+            % remove NF for biomass reaction
+            wt_net_fluxes(mut_tmodel.f==1) = [];
             mut_tmodel_min_dist_wt = addPfbaConstTFA(mut_tmodel, wt_net_fluxes);
             
             % solve minimization problem
