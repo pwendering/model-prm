@@ -556,6 +556,7 @@ for lc_idx = 1:numel(l_cond)
             
             %% Solve TFA for wild type model
             wt_tmodel = this_tmodel;
+            bio_obj = wt_tmodel.f;
             
             if m_idx == 1
                 % if calculated growth rate for FL applies, constrain ratio
@@ -580,8 +581,8 @@ for lc_idx = 1:numel(l_cond)
                 phi_lb_constr_idx = contains(wt_tmodel.constraintNames, 'phi_ub');
                 wt_tmodel.A(phi_lb_constr_idx, rbc_rxn_idx) = [-phi-phi_tol 1];
                 
-                % solve wt model to get maximum predicted growth rate
-                bio_obj = wt_tmodel.f;
+                % solve wt model to get maximum predicted growth rate or
+                % see whether fixed growth rate can be achieved (FL)
                 tfa_wt = solveTFAmodelCplex(wt_tmodel);
                 
                 if isempty(tfa_wt.x) && (ismember(l_cond(lc_idx), 'fl') || ismember(l_cond(lc_idx), 'fl_ml'))
@@ -601,10 +602,9 @@ for lc_idx = 1:numel(l_cond)
                     wt_tmodel.f(:) = 0;
                     wt_tmodel.f(bio_obj==1) = 1;
                     wt_tmodel.objtype = -1;
+                else
+                    wt_tmodel.var_lb(wt_tmodel.f==1) = 0.99*tfa_wt.x(bio_obj==1);
                 end
-                
-                
-                wt_tmodel.var_lb(wt_tmodel.f==1) = 0.99*tfa_wt.x(bio_obj==1);
                 
                 % add relaxed metabolite concentration ranges to measured
                 % metabolites
