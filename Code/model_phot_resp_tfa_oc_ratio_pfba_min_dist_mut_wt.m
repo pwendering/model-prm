@@ -495,11 +495,9 @@ for lc_idx = 1:numel(l_cond)
             
             % determine ratio of growth rates (wt/mutant)
             if contains(l_cond(lc_idx), 'ml') || contains(l_cond(lc_idx), 'ml_fl')
-                ph_ub = I_ML;
                 biomass_ratio = mu_wt_ml / ...
                     mu_ml(strcmp(dw_ml.Properties.RowNames,mutants{m_idx}));
             else
-                ph_ub = I_FL;
                 biomass_ratio = mu_wt_fl / ...
                     mu_fl(strcmp(dw_fl.Properties.RowNames,mutants{m_idx}));
             end
@@ -539,7 +537,6 @@ for lc_idx = 1:numel(l_cond)
             
             % set photon uptake upper bound
             model.ub(findRxnIDs(model,'Im_hnu')) = ph_ub;
-            this_tmodel.var_ub(strcmp(this_tmodel.varNames,'F_Im_hnu')) = ph_ub;
             
             % test if growth is possible with knock-outs
             ko_model = removeRxns(model,ko_rxns{m_idx});
@@ -567,10 +564,17 @@ for lc_idx = 1:numel(l_cond)
                     
                     phi = phi_fl;
                     phi_tol = phi_tol_fl;
+                    
+                    ph_ub = I_FL;
                 else
                     phi = phi_ml;
                     phi_tol = phi_tol_ml;
+                    
+                     ph_ub = I_ML;
                 end
+                
+                % set photon uptake
+                wt_tmodel.var_ub(strcmp(wt_tmodel.varNames,'F_Im_hnu')) = ph_ub;
                 
                 % add oxygenation to carboxylation ratio
                 rbc_rxn_idx = cellfun(@(x)find(ismember(wt_tmodel.varNames, x)), {'NF_RBC_h' 'NF_RBO_h'});
@@ -596,8 +600,10 @@ for lc_idx = 1:numel(l_cond)
                     min_hnu = solveTFAmodelCplex(wt_tmodel);
                     fprintf('Setting photon uptake to minimum required value of %.4g (from %.4g)\n',...
                         min_hnu.val, ph_ub)
+                    ph_ub = min_hnu.val;
+                    clear min_hnu
                     % update photon uptake bound
-                    wt_tmodel.var_ub(strcmp(wt_tmodel.varNames,'F_Im_hnu')) = min_hnu.val;
+                    wt_tmodel.var_ub(strcmp(wt_tmodel.varNames,'F_Im_hnu')) = ph_ub;
                     % reset objective
                     wt_tmodel.f(:) = 0;
                     wt_tmodel.f(bio_obj==1) = 1;
@@ -716,6 +722,11 @@ for lc_idx = 1:numel(l_cond)
             
             %% solve TFA for mutant model
             mut_tmodel = this_tmodel;
+            
+            % set photon uptake
+             mut_tmodel.var_ub(strcmp(wt_tmodel.varNames,'F_Im_hnu')) = ph_ub;
+            
+            % block KO reactions
             mut_tmodel.var_lb(ismember(mut_tmodel.varNames,strcat('NF_', ko_rxns{m_idx}))) = 0;
             mut_tmodel.var_ub(ismember(mut_tmodel.varNames,strcat('NF_', ko_rxns{m_idx}))) = 0;
             
