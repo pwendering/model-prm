@@ -497,9 +497,11 @@ for lc_idx = 1:numel(l_cond)
             if contains(l_cond(lc_idx), 'ml') || contains(l_cond(lc_idx), 'ml_fl')
                 biomass_ratio = mu_wt_ml / ...
                     mu_ml(strcmp(dw_ml.Properties.RowNames,mutants{m_idx}));
+                ph_ub = I_ML;
             else
                 biomass_ratio = mu_wt_fl / ...
                     mu_fl(strcmp(dw_fl.Properties.RowNames,mutants{m_idx}));
+                ph_ub = I_FL;
             end
             
             %% get metabolite concentration ranges for the mutant
@@ -565,12 +567,10 @@ for lc_idx = 1:numel(l_cond)
                     phi = phi_fl;
                     phi_tol = phi_tol_fl;
                     
-                    ph_ub = I_FL;
                 else
                     phi = phi_ml;
                     phi_tol = phi_tol_ml;
-                    
-                     ph_ub = I_ML;
+
                 end
                 
                 % set photon uptake
@@ -724,7 +724,7 @@ for lc_idx = 1:numel(l_cond)
             mut_tmodel = this_tmodel;
             
             % set photon uptake
-             mut_tmodel.var_ub(strcmp(wt_tmodel.varNames,'F_Im_hnu')) = ph_ub;
+            mut_tmodel.var_ub(strcmp(wt_tmodel.varNames,'F_Im_hnu')) = ph_ub;
             
             % block KO reactions
             mut_tmodel.var_lb(ismember(mut_tmodel.varNames,strcat('NF_', ko_rxns{m_idx}))) = 0;
