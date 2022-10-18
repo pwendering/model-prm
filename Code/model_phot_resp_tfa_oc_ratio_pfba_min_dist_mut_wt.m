@@ -264,9 +264,9 @@ solFBA = optimizeCbModel(tmp_model);
 min_obj = roundsd(0.5*solFBA.f, 2, 'floor');
 tmp_model.lb(tmp_model.c==1) = min_obj;
 
-%% Perform FVA at 90% of the optimum
+%% Perform FVA at 100% of the optimum
 old_ub = tmp_model.lb(tmp_model.c==1);
-tmp_model.lb(tmp_model.c==1) = 0.9*solFBA.f;
+tmp_model.lb(tmp_model.c==1) = solFBA.f - 1e-9;
 fva_wt = runMinMax(tmp_model, tmp_model.rxns, 'runParallel', PAR_FLAG);
 tmp_model.lb(tmp_model.c==1) = old_ub;
 
@@ -566,8 +566,8 @@ for lc_idx = 1:numel(l_cond)
                 % if calculated growth rate for FL applies, constrain ratio
                 % of growth rate between ML and FL
                 if ismember(l_cond(lc_idx), 'fl') || ismember(l_cond(lc_idx), 'fl_ml')
-                    wt_tmodel.var_ub(wt_tmodel.f==1) = ref_ml_growth * mu_wt_fl / mu_wt_ml + 1e-10;
-                    wt_tmodel.var_lb(wt_tmodel.f==1) = ref_ml_growth * mu_wt_fl / mu_wt_ml - 1e-10;
+                    wt_tmodel.var_ub(wt_tmodel.f==1) = ref_ml_growth * mu_wt_fl / mu_wt_ml + 1e-9;
+                    wt_tmodel.var_lb(wt_tmodel.f==1) = ref_ml_growth * mu_wt_fl / mu_wt_ml - 1e-9;
                     
                     phi = phi_fl;
                     phi_tol = phi_tol_fl;
@@ -614,7 +614,7 @@ for lc_idx = 1:numel(l_cond)
                     wt_tmodel.f(bio_obj==1) = 1;
                     wt_tmodel.objtype = -1;
                 else
-                    wt_tmodel.var_lb(wt_tmodel.f==1) = 0.99*tfa_wt.x(bio_obj==1);
+                    wt_tmodel.var_lb(wt_tmodel.f==1) = tfa_wt.x(bio_obj==1) - 1e-9;
                 end
                 
                 % add relaxed metabolite concentration ranges to measured
@@ -688,7 +688,7 @@ for lc_idx = 1:numel(l_cond)
                 
                 % minimize the sum of absolute net fluxes at optimal
                 % biomass predicted by TFA
-                wt_tmodel.var_lb(wt_tmodel.f==1) = 0.99*wt_opt;
+                wt_tmodel.var_lb(wt_tmodel.f==1) = wt_opt - 1e-9;
                 
                 % add pFBA constraints to TFA problem
                 wt_tmodel_pfba = addPfbaConstTFA(wt_tmodel);
@@ -705,11 +705,8 @@ for lc_idx = 1:numel(l_cond)
                 CLHS.varCoeffs = [zeros(1, size(wt_tmodel.A, 2)) ...
                     ones(1, size(wt_tmodel_pfba.A, 2) - size(wt_tmodel.A, 2))];
                 wt_tmodel_pfba = addNewConstraintInTFA(wt_tmodel_pfba, 'sum_pFBA', '<',...
-                    CLHS, 1.01*wt_pfba_obj_val);
-                
-                % set lower bound for biomass to 90% of optimal value
-                wt_tmodel_pfba.var_lb(bio_obj==1) = 0.9*wt_opt;
-                
+                    CLHS, wt_pfba_obj_val + 1e-6);
+                               
                 % Run tva with the data
                 fprintf('Running variability analysis\n')
                 tva_wt = runTMinMax(wt_tmodel_pfba, wt_tmodel_pfba.varNames(NF_idx),...
@@ -740,7 +737,7 @@ for lc_idx = 1:numel(l_cond)
             mut_model.lb(ismember(mut_model.rxns,ko_rxns{m_idx})) = 0;
             mut_model.ub(ismember(mut_model.rxns,ko_rxns{m_idx})) = 0;
             mutFBASol = optimizeCbModel(mut_model);
-            mut_model.lb(mut_model.c==1) = 0.9*mutFBASol.f;
+            mut_model.lb(mut_model.c==1) = mutFBASol.f - 1e-9;
             fva_mut = runMinMax(mut_model,mut_model.rxns,'runParallel',PAR_FLAG);
             is_bd_fva_mut = (n(fva_mut));
             clear mut_model mutFBASol
@@ -755,8 +752,8 @@ for lc_idx = 1:numel(l_cond)
             mut_tmodel.A(phi_lb_constr_idx, rbc_rxn_idx) = [-phi-phi_tol 1];
             
             % add biomass ratio constraint
-            mut_tmodel.var_ub(mut_tmodel.f==1) = wt_opt / biomass_ratio + 1e-10;
-            mut_tmodel.var_lb(mut_tmodel.f==1) = wt_opt / biomass_ratio - 1e-10;
+            mut_tmodel.var_ub(mut_tmodel.f==1) = wt_opt / biomass_ratio + 1e-9;
+            mut_tmodel.var_lb(mut_tmodel.f==1) = wt_opt / biomass_ratio - 1e-9;
             
             % add relaxed metabolite concentration ranges to measured
             % metabolites
@@ -812,9 +809,6 @@ for lc_idx = 1:numel(l_cond)
             mut_tmodel.var_ub(cellfun(@(x)find(ismember(mut_tmodel.varNames,x)),...
                 LC_varNames)) = met_conc_mut+abs(.1*(met_conc_mut));
             
-            % fix biomass flux at 99% mutant growth
-            mut_tmodel.var_lb(mut_tmodel.f==1) = 0.99*(wt_opt / biomass_ratio) - 1e-10;
-            
             % add constraints that minimize the distance to the wild
             % type flux distribution
             wt_net_fluxes = wt_pfba_flux(startsWith(mut_tmodel.varNames, 'NF_'));
@@ -833,10 +827,7 @@ for lc_idx = 1:numel(l_cond)
             CLHS.varCoeffs = [zeros(1, size(mut_tmodel.A, 2)) ...
                 ones(1, size(mut_tmodel_min_dist_wt.A, 2) - size(mut_tmodel.A, 2))];
             mut_tmodel_min_dist_wt = addNewConstraintInTFA(mut_tmodel_min_dist_wt, 'min_dist_wt', '<',...
-                CLHS, 1.01*mut_wt_dist_opt);
-            
-            % set lower bound for biomass to 90% of optimal value
-            mut_tmodel_min_dist_wt.var_lb(bio_obj==1) = 0.90*(wt_opt / biomass_ratio) - 1e-10;
+                CLHS, mut_wt_dist_opt + 1e-6);
             
             % Run tva with the data
             fprintf('Running variability analysis\n')
