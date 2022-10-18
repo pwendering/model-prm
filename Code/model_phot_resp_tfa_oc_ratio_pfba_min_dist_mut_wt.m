@@ -729,7 +729,7 @@ for lc_idx = 1:numel(l_cond)
             mut_tmodel = this_tmodel;
             
             % set photon uptake
-            mut_tmodel.var_ub(strcmp(wt_tmodel.varNames,'F_Im_hnu')) = ph_ub;
+            mut_tmodel.var_ub(strcmp(mut_tmodel.varNames,'F_Im_hnu')) = ph_ub;
             
             % block KO reactions
             mut_tmodel.var_lb(ismember(mut_tmodel.varNames,strcat('NF_', ko_rxns{m_idx}))) = 0;
@@ -746,13 +746,13 @@ for lc_idx = 1:numel(l_cond)
             clear mut_model mutFBASol
             
             % add oxygenation to carboxylation ratio
-            rbc_rxn_idx = cellfun(@(x)find(ismember(wt_tmodel.varNames, x)), {'NF_RBC_h' 'NF_RBO_h'});
+            rbc_rxn_idx = cellfun(@(x)find(ismember(mut_tmodel.varNames, x)), {'NF_RBC_h' 'NF_RBO_h'});
             
-            phi_lb_constr_idx = contains(wt_tmodel.constraintNames, 'phi_lb');
-            wt_tmodel.A(phi_lb_constr_idx, rbc_rxn_idx) = [phi-phi_tol -1];
+            phi_lb_constr_idx = contains(mut_tmodel.constraintNames, 'phi_lb');
+            mut_tmodel.A(phi_lb_constr_idx, rbc_rxn_idx) = [phi-phi_tol -1];
             
-            phi_lb_constr_idx = contains(wt_tmodel.constraintNames, 'phi_ub');
-            wt_tmodel.A(phi_lb_constr_idx, rbc_rxn_idx) = [-phi-phi_tol 1];
+            phi_lb_constr_idx = contains(mut_tmodel.constraintNames, 'phi_ub');
+            mut_tmodel.A(phi_lb_constr_idx, rbc_rxn_idx) = [-phi-phi_tol 1];
             
             % add biomass ratio constraint
             mut_tmodel.var_ub(mut_tmodel.f==1) = wt_opt / biomass_ratio + 1e-10;
@@ -839,7 +839,7 @@ for lc_idx = 1:numel(l_cond)
             
             % Run tva with the data
             fprintf('Running variability analysis\n')
-            tva_mut = runTMinMax(mut_tmodel_min_dist_wt, wt_tmodel.varNames(NF_idx),...
+            tva_mut = runTMinMax(mut_tmodel_min_dist_wt, mut_tmodel.varNames(NF_idx),...
                 'runParallel',PAR_FLAG);
             
             % Run flux sampling
