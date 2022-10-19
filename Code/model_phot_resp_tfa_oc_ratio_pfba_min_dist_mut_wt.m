@@ -573,8 +573,8 @@ for lc_idx = 1:numel(l_cond)
                 % if calculated growth rate for FL applies, constrain ratio
                 % of growth rate between ML and FL
                 if ismember(l_cond(lc_idx), 'fl') || ismember(l_cond(lc_idx), 'fl_ml')
-                    wt_tmodel.var_ub(wt_tmodel.f==1) = (1+1e-6) * ref_ml_growth * mu_wt_fl / mu_wt_ml;
-                    wt_tmodel.var_lb(wt_tmodel.f==1) = (1-1e-6) * ref_ml_growth * mu_wt_fl / mu_wt_ml;
+                    wt_tmodel.var_ub(wt_tmodel.f==1) = (1+1e-3) * ref_ml_growth * mu_wt_fl / mu_wt_ml;
+                    wt_tmodel.var_lb(wt_tmodel.f==1) = (1-1e-3) * ref_ml_growth * mu_wt_fl / mu_wt_ml;
                     
                     phi = phi_fl;
                     phi_tol = phi_tol_fl;
