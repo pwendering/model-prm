@@ -270,6 +270,9 @@ tmp_model.lb(tmp_model.c==1) = (1-1e-6)*solFBA.f;
 fva_wt = runMinMax(tmp_model, tmp_model.rxns, 'runParallel', PAR_FLAG);
 tmp_model.lb(tmp_model.c==1) = old_ub;
 
+% Next step is not necessary because only the blocked alternative biomass
+% reactions are removed
+%{
 % Are there any blocked reactions?
 % solver tolerance is 1e-9
 SolTol = 1e-9;
@@ -279,6 +282,8 @@ id_Blocked_in_FBA = find( (fva_wt(:,1)>-SolTol & fva_wt(:,1)<SolTol) & ...
 while ~isempty(id_Blocked_in_FBA)
     % remove them
     tmp_model = removeRxns(tmp_model, tmp_model.rxns(id_Blocked_in_FBA));
+    disp('Removing blocked reactions in FVA:')
+    disp(model.rxns(id_Blocked_in_FBA))
     % remove them also in the original model as phi constraints will be
     % added later on
     model = removeRxns(model, model.rxns(id_Blocked_in_FBA));
@@ -289,6 +294,7 @@ end
 % - logical vector with indices for bidirectional reactions (flux ranges crossing zero)
 n = @(x) x(:,1)<-1e-9 & x(:,2)>1e-9;
 is_bd_fva_wt = (n(fva_wt));
+%}
 
 %% Prepare for TFA
 %need field for description
