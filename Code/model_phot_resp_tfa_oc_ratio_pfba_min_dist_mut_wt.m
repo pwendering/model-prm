@@ -291,10 +291,11 @@ while ~isempty(id_Blocked_in_FBA)
     id_Blocked_in_FBA = find( (fva_wt(:,1)>-SolTol & fva_wt(:,1)<SolTol) & ...
         (fva_wt(:,2)>-SolTol & fva_wt(:,2)<SolTol) );
 end
+%}
 % - logical vector with indices for bidirectional reactions (flux ranges crossing zero)
 n = @(x) x(:,1)<-1e-9 & x(:,2)>1e-9;
 is_bd_fva_wt = (n(fva_wt));
-%}
+
 
 %% Prepare for TFA
 %need field for description
