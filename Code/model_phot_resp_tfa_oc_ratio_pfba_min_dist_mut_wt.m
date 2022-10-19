@@ -688,7 +688,7 @@ for lc_idx = 1:numel(l_cond)
                 
                 % minimize the sum of absolute net fluxes at optimal
                 % biomass predicted by TFA
-                wt_tmodel.var_lb(wt_tmodel.f==1) = (1-1e-6)*wt_opt;
+                wt_tmodel.var_lb(wt_tmodel.f==1) = (1-1e-3)*wt_opt;
                 
                 % add pFBA constraints to TFA problem
                 wt_tmodel_pfba = addPfbaConstTFA(wt_tmodel);
@@ -752,8 +752,8 @@ for lc_idx = 1:numel(l_cond)
             mut_tmodel.A(phi_lb_constr_idx, rbc_rxn_idx) = [-phi-phi_tol 1];
             
             % add biomass ratio constraint
-            mut_tmodel.var_ub(mut_tmodel.f==1) = (1+1e-6) * wt_opt / biomass_ratio;
-            mut_tmodel.var_lb(mut_tmodel.f==1) = (1-1e-6) * wt_opt / biomass_ratio;
+            mut_tmodel.var_ub(mut_tmodel.f==1) = (1+1e-3/2) * wt_opt / biomass_ratio;
+            mut_tmodel.var_lb(mut_tmodel.f==1) = (1-1e-3/2) * wt_opt / biomass_ratio;
             
             % add relaxed metabolite concentration ranges to measured
             % metabolites
