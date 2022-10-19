@@ -834,7 +834,7 @@ for lc_idx = 1:numel(l_cond)
             CLHS.varCoeffs = [zeros(1, size(mut_tmodel.A, 2)) ...
                 ones(1, size(mut_tmodel_min_dist_wt.A, 2) - size(mut_tmodel.A, 2))];
             mut_tmodel_min_dist_wt = addNewConstraintInTFA(mut_tmodel_min_dist_wt, 'min_dist_wt', '<',...
-                CLHS, (1+1e-3)*mut_wt_dist_opt);
+                CLHS, (1+2e-3)*mut_wt_dist_opt);
             
             % Run tva with the data
             fprintf('Running variability analysis\n')
