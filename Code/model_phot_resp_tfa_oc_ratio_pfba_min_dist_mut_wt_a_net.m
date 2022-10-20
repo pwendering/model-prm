@@ -910,11 +910,11 @@ for lc_idx = 1:numel(l_cond)
                 tmp_mut_tmodel.f(startsWith(mut_tmodel.varNames,'EPS_')) = 1e-2;
                 tmp_mut_tmodel.objtype = 1;
                 
-                min_rgr_dist_sol = solveTFAmodelCplex(tmp_mut_tmodel);
-                new_rgr_fl_mut = min_rgr_dist_sol.x(bio_obj==1);
+                tfa_mut = solveTFAmodelCplex(tmp_mut_tmodel);
+                new_rgr_fl_mut = tfa_mut.x(bio_obj==1);
                 fprintf('FL/ML RGR ratio has been relaxed from %.4g to %.4g.\n',...
                     1/biomass_ratio, new_rgr_fl_mut/wt_bio_opt)
-                clear tmp_wt_tmodel min_rgr_dist_sol
+                clear tmp_wt_tmodel
                 
                 mut_tmodel.var_ub(mut_tmodel.f==1) = (1+1e-3) * new_rgr_fl_mut;
                 mut_tmodel.var_lb(mut_tmodel.f==1) = (1-1e-3) * new_rgr_fl_mut;
