@@ -734,7 +734,7 @@ for lc_idx = 1:numel(l_cond)
                 tfa_wt_2 = solveTFAmodelCplex(wt_tmodel);
                 if ~isempty(tfa_wt_2.x)
                     wt_bio_opt = tfa_wt_2.x(wt_tmodel.f==1);
-                    wt_a_net_opt = tfa_wt2.x(cellfun(@(x)find(ismember(wt_tmodel.varNames,x)), a_net_nf_ids))' * [-1;0.5;1];
+                    wt_a_net_opt = tfa_wt_2.x(cellfun(@(x)find(ismember(wt_tmodel.varNames,x)), a_net_nf_ids))' * [-1;0.5;1];
                 else
                     fprintf('Growth optimization with fixed metabolite concentrations not successful\n')
                     wt_bio_opt = tfa_wt.x(wt_tmodel.f==1);
