@@ -64,7 +64,7 @@ eco_model = tmp.smallEcoli;
 
 % reverse direction of CO2 transport between mitochondria to cytosol
 % (such that positive flux means export from mitochondria)
-model.S(:, findRxnIDs(model, 'Tr_CO2m')) = -model.S(:, findRxnIDs(model, 'Tr_CO2m'));
+% model.S(:, findRxnIDs(model, 'Tr_CO2m')) = -model.S(:, findRxnIDs(model, 'Tr_CO2m'));
 
 % remove GGT1 from gene associations of chloroplastic reactions
 model = changeGeneAssociation(model, 'AlaTA_h', 'AT1G70580 or AT1G17290');
@@ -597,12 +597,12 @@ for lc_idx = 1:numel(l_cond)
                     % net CO2 assimilation ratio
                     % UB
                     CLHS.varIDs = cellfun(@(x)find(ismember(wt_tmodel.varNames,x)), a_net_nf_ids);
-                    CLHS.varCoeffs = [1 -0.5 -1];
+                    CLHS.varCoeffs = [1 -0.5 1];
                     wt_tmodel = addNewConstraintInTFA(wt_tmodel, 'a_net_ub',...
                         '<', CLHS, (1+1e-3)*ref_ml_a_net*a_net_fl_wt/a_net_ml_wt);
                     % LB
                     CLHS.varIDs = cellfun(@(x)find(ismember(wt_tmodel.varNames,x)), a_net_nf_ids);
-                    CLHS.varCoeffs = [-1 0.5 1];
+                    CLHS.varCoeffs = [-1 0.5 -1];
                     wt_tmodel = addNewConstraintInTFA(wt_tmodel, 'a_net_lb',...
                         '<', CLHS, -(1-1e-3)*ref_ml_a_net*a_net_fl_wt/a_net_ml_wt);                  
                     
@@ -738,11 +738,11 @@ for lc_idx = 1:numel(l_cond)
                 tfa_wt_2 = solveTFAmodelCplex(wt_tmodel);
                 if ~isempty(tfa_wt_2.x)
                     wt_bio_opt = tfa_wt_2.x(wt_tmodel.f==1);
-                    wt_a_net_opt = tfa_wt_2.x(cellfun(@(x)find(ismember(wt_tmodel.varNames,x)), a_net_nf_ids))' * [1;-0.5;-1];
+                    wt_a_net_opt = tfa_wt_2.x(cellfun(@(x)find(ismember(wt_tmodel.varNames,x)), a_net_nf_ids))' * [1;-0.5;1];
                 else
                     fprintf('Growth optimization with fixed metabolite concentrations not successful\n')
                     wt_bio_opt = tfa_wt.x(wt_tmodel.f==1);
-                    wt_a_net_opt = tfa_wt.x(cellfun(@(x)find(ismember(wt_tmodel.varNames,x)), a_net_nf_ids))' * [1;-0.5;-1];
+                    wt_a_net_opt = tfa_wt.x(cellfun(@(x)find(ismember(wt_tmodel.varNames,x)), a_net_nf_ids))' * [1;-0.5;1];
                 end
                 
                 % save optimal growth rate for ML condition
@@ -823,12 +823,12 @@ for lc_idx = 1:numel(l_cond)
             % add net CO2 assimilation ratio constraints
             % UB
             CLHS.varIDs = cellfun(@(x)find(ismember(mut_tmodel.varNames,x)), a_net_nf_ids);
-            CLHS.varCoeffs = [1 -0.5 -1];
+            CLHS.varCoeffs = [1 -0.5 1];
             mut_tmodel = addNewConstraintInTFA(mut_tmodel, 'a_net_ub',...
                 '<', CLHS, (1+1e-3)*wt_a_net_opt/a_net_ratio);
             % LB
             CLHS.varIDs = cellfun(@(x)find(ismember(mut_tmodel.varNames,x)), a_net_nf_ids);
-            CLHS.varCoeffs = [-1 0.5 1];
+            CLHS.varCoeffs = [-1 0.5 -1];
             mut_tmodel = addNewConstraintInTFA(mut_tmodel, 'a_net_lb',...
                 '<', CLHS, -(1-1e-3)*wt_a_net_opt/a_net_ratio);
             
