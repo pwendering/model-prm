@@ -1,4 +1,0 @@
-ReactionID,ReactionName,ReactionSubSystem,minFluxWT,maxFluxWT,minFluxMUT,maxFluxMUT
-GDPR_c,Ribonucleoside-diphosphate reductase,nucleotide metabolism,0.000164196646114748,0.000180072223663436,9.05435719091755e-05,0.000155711990032847
-dGDPK_c,Nucleoside-diphosphate kinase,nucleotide metabolism,0.000164196646114748,0.000180072223663436,9.05435719091755e-05,0.000155711990032847
-Bio_opt,Light limiting biomass,biomass reaction,0.000442089997885754,0.000491211108761948,0.000243783344307303,0.000270870593674781
