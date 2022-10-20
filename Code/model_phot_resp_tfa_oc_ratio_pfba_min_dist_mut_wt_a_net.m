@@ -62,6 +62,10 @@ load(fullfile(data_dir,'AraCore-updated-rev.mat'));
 tmp = load(fullfile(mattfa_path,'models','smallEcoli.mat'));
 eco_model = tmp.smallEcoli;
 
+% reverse direction of CO2 transport between mitochondria to cytosol
+% (such that positive flux means export from mitochondria)
+model.S(:, findRxnIDs(model, 'Tr_CO2m')) = -model.S(:, findRxnIDs(model, 'Tr_CO2m'));
+
 % remove GGT1 from gene associations of chloroplastic reactions
 model = changeGeneAssociation(model, 'AlaTA_h', 'AT1G70580 or AT1G17290');
 model = changeGeneAssociation(model, 'GGAT_h', 'AT1G70580');
@@ -734,11 +738,11 @@ for lc_idx = 1:numel(l_cond)
                 tfa_wt_2 = solveTFAmodelCplex(wt_tmodel);
                 if ~isempty(tfa_wt_2.x)
                     wt_bio_opt = tfa_wt_2.x(wt_tmodel.f==1);
-                    wt_a_net_opt = tfa_wt_2.x(cellfun(@(x)find(ismember(wt_tmodel.varNames,x)), a_net_nf_ids))' * [-1;0.5;1];
+                    wt_a_net_opt = tfa_wt_2.x(cellfun(@(x)find(ismember(wt_tmodel.varNames,x)), a_net_nf_ids))' * [1;-0.5;-1];
                 else
                     fprintf('Growth optimization with fixed metabolite concentrations not successful\n')
                     wt_bio_opt = tfa_wt.x(wt_tmodel.f==1);
-                    wt_a_net_opt = tfa_wt.x(cellfun(@(x)find(ismember(wt_tmodel.varNames,x)), a_net_nf_ids))' * [-1;0.5;1];
+                    wt_a_net_opt = tfa_wt.x(cellfun(@(x)find(ismember(wt_tmodel.varNames,x)), a_net_nf_ids))' * [1;-0.5;-1];
                 end
                 
                 % save optimal growth rate for ML condition
