@@ -590,7 +590,7 @@ for lc_idx = 1:numel(l_cond)
                 % of growth rate between ML and FL
                 if ismember(l_cond(lc_idx), 'fl') || ismember(l_cond(lc_idx), 'fl_ml')
                     
-                    % growth ratio
+                    % set growth ratio
                     wt_tmodel.var_ub(wt_tmodel.f==1) = (1+1e-3) * ref_ml_growth * mu_wt_fl / mu_wt_ml;
                     wt_tmodel.var_lb(wt_tmodel.f==1) = (1-1e-3) * ref_ml_growth * mu_wt_fl / mu_wt_ml;
                     
@@ -632,9 +632,50 @@ for lc_idx = 1:numel(l_cond)
                 tfa_wt = solveTFAmodelCplex(wt_tmodel);
                 
                 if isempty(tfa_wt.x) && (ismember(l_cond(lc_idx), 'fl') || ismember(l_cond(lc_idx), 'fl_ml'))
-                    fprintf('FL wild type growth rate could not be achieved using current photon uptake\n')
-                    % set photon uptake to maximum
+                    
+                    % program not feasible
+                    % possible reasons (most certainly both):
+                    % * photon uptake limit to stringent, so demanded
+                    % growth rate cannot be achieved
+                    % * growth rate cannot be achieved with demanded net
+                    % assimilation
+                    
+                    % ==> minimize difference between predicted FL relative
+                    %     growth rate and theoretical growth rate
+                    
+                    % relax photon uptake and RGR ratio
                     wt_tmodel.var_ub(strcmp(wt_tmodel.varNames,'F_Im_hnu')) = 1000;
+                    wt_tmodel.var_ub(wt_tmodel.f==1) = 1;
+                    wt_tmodel.var_lb(wt_tmodel.f==1) = 0;
+                    
+                    % add constraint for minimization of absolute
+                    % difference between predicted and expected RGR
+                    tmp_wt_tmodel = wt_tmodel;
+                    tmp_wt_tmodel = addNewVariableInTFA(tmp_wt_tmodel, 'diff_rgr_pos', 'C', [0 1]);
+                    tmp_wt_tmodel = addNewVariableInTFA(tmp_wt_tmodel, 'diff_rgr_neg', 'C', [0 1]);
+                    CLHS.varIDs = cellfun(@(x)find(ismember(tmp_wt_tmodel.varNames,x)),{'diff_rgr_pos', 'diff_rgr_neg', 'F_Bio_opt'});
+                    CLHS.varCoeffs = [ref_ml_growth -ref_ml_growth -1];
+                    tmp_wt_tmodel = addNewConstraintInTFA(tmp_wt_tmodel, 'diff_rgr_constr', '=',...
+                        CLHS, -ref_ml_growth*mu_wt_fl/mu_wt_ml);
+                    tmp_wt_tmodel.f(:) = 0;
+                    tmp_wt_tmodel.f(ismember(tmp_wt_tmodel.varNames, {'diff_rgr_pos', 'diff_rgr_neg'})) = 1;
+                    tmp_wt_tmodel.objtype = 1;
+                    
+                    min_rgr_dist_sol = solveTFAmodelCplex(tmp_wt_tmodel);
+                    new_rgr_fl_wt = min_rgr_dist_sol.x(bio_obj==1);
+                    fprintf('FL/ML RGR ratio has been relaxed from %.4g to %.4g.\n',...
+                        mu_wt_fl/mu_wt_ml, new_rgr_fl_wt/ref_ml_growth)
+                    clear tmp_wt_tmodel min_rgr_dist_sol
+                    
+                    % fix growth rate to new value
+                    wt_tmodel.var_ub(wt_tmodel.f==1) = (1+1e-3) * new_rgr_fl_wt;
+                    wt_tmodel.var_lb(wt_tmodel.f==1) = (1-1e-3) * new_rgr_fl_wt;
+
+                    % check, if program is feasible 
+                    test_tfa = solveTFAmodelCplex(wt_tmodel);
+                    
+                    % next, minimize photon uptake
+                    
                     % minimize photon uptake at fixed growth rate
                     wt_tmodel.f(:) = 0;
                     wt_tmodel.f(strcmp(wt_tmodel.varNames,'F_Im_hnu')) = 1;
@@ -644,6 +685,7 @@ for lc_idx = 1:numel(l_cond)
                         min_hnu.val, ph_ub)
                     ph_ub = (1+1e-6)*min_hnu.val;
                     clear min_hnu
+                    
                     % update photon uptake bound
                     wt_tmodel.var_ub(strcmp(wt_tmodel.varNames,'F_Im_hnu')) = ph_ub;
                     % reset objective
