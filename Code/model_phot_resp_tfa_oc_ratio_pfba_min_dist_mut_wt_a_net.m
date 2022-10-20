@@ -812,7 +812,7 @@ for lc_idx = 1:numel(l_cond)
                 CLHS.varCoeffs = [zeros(1, size(wt_tmodel.A, 2)) ...
                     ones(1, size(wt_tmodel_pfba.A, 2) - size(wt_tmodel.A, 2))];
                 wt_tmodel_pfba = addNewConstraintInTFA(wt_tmodel_pfba, 'sum_pFBA', '<',...
-                    CLHS, (1+1e-6)*wt_pfba_obj_val);
+                    CLHS, (1+3e-3)*wt_pfba_obj_val);
                                
                 % Run tva with the data
                 fprintf('Running variability analysis\n')
