@@ -907,7 +907,7 @@ for lc_idx = 1:numel(l_cond)
                     CLHS, -wt_bio_opt/biomass_ratio);
                 tmp_mut_tmodel.f(:) = 0;
                 tmp_mut_tmodel.f(ismember(tmp_mut_tmodel.varNames, {'diff_rgr_pos', 'diff_rgr_neg'})) = 1;
-                tmp_mut_tmodel.f(startsWith(mut_tmodel.varNames,'EPS_')) = 1;
+                tmp_mut_tmodel.f(startsWith(mut_tmodel.varNames,'EPS_')) = 1e-2;
                 tmp_mut_tmodel.objtype = 1;
                 
                 min_rgr_dist_sol = solveTFAmodelCplex(tmp_mut_tmodel);
