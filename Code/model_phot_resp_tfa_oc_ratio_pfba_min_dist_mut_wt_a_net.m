@@ -892,7 +892,38 @@ for lc_idx = 1:numel(l_cond)
             
             if isempty(tfa_mut.x)
                 fprintf('Mutant thermo model cannot be solved with relaxed metabolite concentration ranges\n')
-                continue
+                fprintf('Relaxing RGR ratio restrictions...')
+                
+                mut_tmodel.var_ub(mut_tmodel.f==1) = 1;
+                mut_tmodel.var_lb(mut_tmodel.f==1) = 0;
+                
+                
+                tmp_mut_tmodel = mut_tmodel;
+                tmp_mut_tmodel = addNewVariableInTFA(tmp_mut_tmodel, 'diff_rgr_pos', 'C', [0 1]);
+                tmp_mut_tmodel = addNewVariableInTFA(tmp_mut_tmodel, 'diff_rgr_neg', 'C', [0 1]);
+                CLHS.varIDs = cellfun(@(x)find(ismember(tmp_mut_tmodel.varNames,x)),{'diff_rgr_pos', 'diff_rgr_neg', 'F_Bio_opt'});
+                CLHS.varCoeffs = [wt_bio_opt -wt_bio_opt -1];
+                tmp_mut_tmodel = addNewConstraintInTFA(tmp_mut_tmodel, 'diff_rgr_constr', '=',...
+                    CLHS, -wt_bio_opt/biomass_ratio);
+                tmp_mut_tmodel.f(:) = 0;
+                tmp_mut_tmodel.f(ismember(tmp_mut_tmodel.varNames, {'diff_rgr_pos', 'diff_rgr_neg'})) = 1;
+                tmp_mut_tmodel.f(startsWith(mut_tmodel.varNames,'EPS_')) = 1;
+                tmp_mut_tmodel.objtype = 1;
+                
+                min_rgr_dist_sol = solveTFAmodelCplex(tmp_mut_tmodel);
+                new_rgr_fl_mut = min_rgr_dist_sol.x(bio_obj==1);
+                fprintf('FL/ML RGR ratio has been relaxed from %.4g to %.4g.\n',...
+                    1/biomass_ratio, new_rgr_fl_mut/wt_bio_opt)
+                clear tmp_wt_tmodel min_rgr_dist_sol
+                
+                mut_tmodel.var_ub(mut_tmodel.f==1) = (1+1e-3) * new_rgr_fl_mut;
+                mut_tmodel.var_lb(mut_tmodel.f==1) = (1-1e-3) * new_rgr_fl_mut;
+                
+                tfa_check = solveTFAmodelCplex(mut_tmodel);
+                if isempty(tfa_check.x)
+                    fprintf('Relaxation of RGR constraint no successfull!')
+                    continue
+                end
             end
             
             % positive and negative concentration relaxations
