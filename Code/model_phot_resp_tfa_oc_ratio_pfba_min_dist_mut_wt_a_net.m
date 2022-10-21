@@ -912,7 +912,7 @@ for lc_idx = 1:numel(l_cond)
                 
                 tfa_mut = solveTFAmodelCplex(tmp_mut_tmodel);
                 new_rgr_fl_mut = tfa_mut.x(bio_obj==1);
-                fprintf('FL/ML RGR ratio has been relaxed from %.4g to %.4g.\n',...
+                fprintf('mut/WT RGR ratio has been relaxed from %.4g to %.4g.\n',...
                     1/biomass_ratio, new_rgr_fl_mut/wt_bio_opt)
                 clear tmp_wt_tmodel
                 
@@ -949,7 +949,7 @@ for lc_idx = 1:numel(l_cond)
                 'location','southeast')
             ylabel('TFA metabolite concentration [M]','FontSize',14)
             text(0.01,0.98,['{\it ' mutants{m_idx} '}'],'units','normalized','fontweight','bold')
-
+            pause(2)
             exportgraphics(tmp_fig,[res_dir filesep l_cond{lc_idx} filesep 'metabolite_concentration_' mutants{m_idx} ...
                 '_' l_cond{lc_idx} '_timepoint_' num2str(tp(t_idx)) '_phUB_' num2str(ph_ub,3) '.png'])
             
