@@ -13,7 +13,7 @@ clear;clc
 
 % number of workers for parallel computing
 
-N_CPU = 1;%20;
+N_CPU = 40;%20;
 N_SAMPLES = 1000;
 
 % define data and output directory
@@ -35,14 +35,14 @@ end
 initCobraToolbox(false)
 
 % fix setfield error
-% curr_path = pwd;
-% cd ~/cobratoolbox/external/analysis/PolytopeSamplerMatlab/code/utils
-% system('mv setfield.m Setfield.m');
-% cd(curr_path)
+curr_path = pwd;
+cd ~/cobratoolbox/external/analysis/PolytopeSamplerMatlab/code/utils
+system('mv setfield.m Setfield.m');
+cd(curr_path)
 
 % CPLEX path and COBRA solver
-% cplexPath = '~/bin/ibm/ILOG/CPLEX_Studio129/cplex/matlab/x86-64_linux/';
-cplexPath = fullfile('C:/Program Files/IBM/ILOG/CPLEX_Studio129/cplex/matlab/x64_win64/');
+cplexPath = '~/bin/ibm/ILOG/CPLEX_Studio129/cplex/matlab/x86-64_linux/';
+% cplexPath = fullfile('C:/Program Files/IBM/ILOG/CPLEX_Studio129/cplex/matlab/x64_win64/');
 addpath(genpath(cplexPath))
 changeCobraSolver('ibm_cplex','all');
 
