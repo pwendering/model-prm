@@ -41,15 +41,12 @@ vtypes_add = repelem({'C'},N_EPS,1);
 c = 0;
 for i=1:N_IDS
     
-    % fprintf('ID: %s',ids{i})
-    
     % find column index of metabolite ID   
     if isnan(id_match(i))
         fprintf('ID: %s',ids{i})
         fprintf('\t [ID not found - skipping]\n')
     else
         c = c + 1;
-        % fprintf('\t [found - adding constraint]\n')
 
         row_idx = [2*(c-1)+1 2*c];
         A_add(row_idx(1),[id_match(i) N_VARS+c]) = [-1 -1]; % e(-)
