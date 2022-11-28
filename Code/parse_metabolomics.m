@@ -5,13 +5,6 @@ filename = fullfile('..','Data','220404_AllData_Photorespiration_TB.xlsx');
 sheet = 'Metabolites ML control';
 [met_table_ml_ctl,av_per_genotype_ml_ctl,genotype_ml_ctl,time_in_shift_ml_ctl] = parseMetaboliteData(filename,sheet);
 
-% figure
-% plotHeatmap(...
-%     av_per_genotype_ml_ctl,...
-%     genotype_ml_ctl,...
-%     time_in_shift_ml_ctl,...
-%     met_table_ml_ctl)
-
 % FL control
 sheet = 'Metabolites FL control';
 [met_table_fl_ctl,av_per_genotype_fl_ctl,genotype_fl_ctl,time_in_shift_fl_ctl] = parseMetaboliteData(filename,sheet);
@@ -25,8 +18,6 @@ sheet = 'Metabolites FL to ML shift';
 [met_table_fl_ml,av_per_genotype_fl_ml,genotype_fl_ml,time_in_shift_fl_ml] = parseMetaboliteData(filename,sheet);
 
 clear sheet
-
-
 
 
 function [met_table,av_per_genotype,genotype,shifttime] = parseMetaboliteData(filename,sheet)
@@ -56,21 +47,3 @@ av_per_genotype = cell2mat(...
         )...
     );
 end
-function plotHeatmap(av_per_genotype,genotype,time_in_shift,met_table)
-    
-    yLab = unique(strcat(genotype,num2str(time_in_shift)),'stable');
-    xLab = strrep(met_table.Properties.VariableNames(4:end),'_','\_');
-    
-    imagesc(av_per_genotype./max(av_per_genotype))
-
-    yticks(1:numel(yLab))
-    yticklabels(yLab)
-    
-    xticks(1:numel(xLab))
-    xticklabels(xLab)
-    xtickangle(45)
-    
-    colormap('summer')
-
-end
-
