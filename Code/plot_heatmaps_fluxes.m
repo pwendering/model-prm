@@ -80,8 +80,10 @@ end
 tmp1 = [flux_av{:}];
 tmp2 = round([tmp1{:}], 9);
 tmp2(tmp2==-0) = 0;
-crange = [floor(min(min(tmp2))) ceil(max(max(tmp2)))];
-
+tmp2(tmp2==0) = NaN;
+tmp2 = abs(tmp2).^(1/2);
+% crange = [floor(min(min(tmp2))) ceil(max(max(tmp2)))];
+crange = [floor(min(min(tmp2))/0.5)*0.5 ceil(max(max(tmp2))/0.5)*0.5];
 % load custom colormap
 load('colormap_blue_red.mat')
 for i=1:numel(plot_rxns)
@@ -89,6 +91,18 @@ for i=1:numel(plot_rxns)
     mat = round([flux_av{i}{1}'; flux_av{i}{2}'], 9);
     mat(mat==-0) = 0;
     mat(mat==0) = NaN;
+    
+    if any(any(mat<0))
+        if all(mat<0)
+            rxn_id = [plot_rxns{i} '_rev'];
+        else
+            error('Flux not uniformly negative')
+        end
+    else
+        rxn_id = plot_rxns{i};
+    end
+    
+    mat = sqrt(abs(mat));
     
     heatmap(mat, 'GridVisible', 'off', 'CellLabelColor','none',...
         'Colormap', colormap_blue_red,...
@@ -98,7 +112,7 @@ for i=1:numel(plot_rxns)
         'fontsize',14,...
         'colorbarvisible', 'off')
     set(gcf, 'OuterPosition', [353.6667  265.0000  658.6666  434.0000])
-    exportgraphics(gcf, [res_dir filesep 'heatmaps' filesep plot_rxns{i} '.png'])
+    exportgraphics(gcf, [res_dir filesep 'heatmaps' filesep rxn_id '.png'])
 end
 
 % only plot colorbar
@@ -109,8 +123,8 @@ set(gca, 'Visible', 'off')
 pause(.1)  % to prevent xticks to be placed on top of the cb for some reason
 set(cb, 'Position', [0.1325    0.5    0.6605    0.1])
 set(cb, 'Ticks', 0:.25:1)
-set(cb, 'TickLabels', round(linspace(floor(crange(1)), ceil(crange(2)), 5),2))
+set(cb, 'TickLabels', round(linspace(crange(1), crange(2), 5),2))
 set(cb, 'TickDirection', 'out')
 set(cb, 'FontSize', 12)
-cb.Title.String = 'log_2 flux [mmol/gDW/h]';
+cb.Title.String = '{\surd}flux [mmol/gDW/h]';
 exportgraphics(gcf, [res_dir filesep 'heatmaps' filesep 'colorbar.jpg'])
