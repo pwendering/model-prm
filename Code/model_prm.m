@@ -282,20 +282,6 @@ this_tmodel = relaxModelWithDGoSlacks(this_tmodel, min_obj, []);
 data_dir_struct = dir(data_dir);
 data_files = {data_dir_struct.name};
 
-% metabolite abundance ranges from multiple experiments [g/gDW]
-met_ranges = readtable(...
-    fullfile(data_dir, 'met_ranges.csv'),...
-    'ReadRowNames', true...
-    );
-met_range_av = mean(met_ranges{:,2:end},2,'omitnan');
-met_range_sd = std(met_ranges{:,2:end},0,2,'omitnan');
-met_range_sd(met_range_sd==0) = 0.3*met_range_av(met_range_sd==0);
-range_met_names = met_ranges.Properties.RowNames;
-range_ids = name2id(range_met_names);
-
-min_conc_limit = min(min(met_ranges{:,2:end}));
-max_conc_limit = max(max(met_ranges{:,2:end}));
-
 % dry weights
 dw_ml = readtable(...
     fullfile(data_dir, data_files{contains(data_files, 'dw_ml_34')}),...
