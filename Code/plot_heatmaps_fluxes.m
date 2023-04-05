@@ -21,7 +21,8 @@ pr_rxns = model.rxns(cellfun(@(x)contains(x, 'photorespiration'),...
 tca_cycle_rxns = model.rxns(cellfun(@(x)contains(x, 'tricarboxylic acid cycle'),...
     model.subSystems));
 
-plot_rxns = [pr_rxns; tca_cycle_rxns; {'GlyHMT_c'; 'GCEADH_h'; 'GGAT_h'; 'GCAO_h'}];
+plot_rxns = [pr_rxns; tca_cycle_rxns; {'GlyHMT_c'; 'GCEADH_h'; 'GGAT_h';...
+    'GCAO_h'; 'MalDH3_h'; 'GluSFd_h'; 'GluSNAD_h'; 'GlnS_h'}];
 plot_rxn_idx = findRxnIDs(model, plot_rxns);
 
 % flux sampling data specifications
@@ -75,6 +76,37 @@ for l = 1:numel(light_conditions)
     end
 end
 
+%% Write results to file
+fid = fopen(fullfile('..', 'Results', 'reaction_fluxes.tsv'), 'w+');
+for i=1:numel(plot_rxns)
+    rxn_idx = findRxnIDs(model, plot_rxns(i));
+    rxn_name = model.rxnNames(rxn_idx);
+    rxn_ec = model.rxnECNumbers(rxn_idx);
+    rxn_formula = strtrim(printRxnFormula(model, plot_rxns(i), 0));
+    rxn_gpr = model.grRules(rxn_idx);
+    mat_av = round([flux_av{i}{1}'; flux_av{i}{2}'], 9);
+    mat_sd = round([flux_sd{i}{1}'; flux_sd{i}{2}'], 9);
+    fprintf(fid, [repelem('_', 90), '\n']);
+    fprintf(fid, [strjoin([plot_rxns(i) rxn_name rxn_ec rxn_formula strcat('Genes: ', rxn_gpr)], '\t') '\n']);
+    fprintf(fid, [repelem('-', 90), '\n']);
+    fprintf(fid, 'Average flux (n=1000) [mmol/gDW/h]\n');
+    fprintf(fid, [strjoin(genotypes, '\t') '\n']);
+    fprintf(fid, ['%s\t' strjoin(repelem({'%.9f'}, numel(genotypes), 1), '\t') '\n'],...
+        'CL', mat_av(1,:));
+        fprintf(fid, ['%s\t' strjoin(repelem({'%.9f'}, numel(genotypes), 1), '\t') '\n\n'],...
+        'FL', mat_av(2,:));
+    
+    fprintf(fid, [repelem('-',90), '\n']);
+    fprintf(fid, 'Standard deviation (n=1000) [mmol/gDW/h]\n');
+        fprintf(fid, [strjoin(genotypes, '\t') '\n']);
+    fprintf(fid, ['%s\t' strjoin(repelem({'%.9f'}, numel(genotypes), 1), '\t') '\n'],...
+        'CL', mat_sd(1,:));
+        fprintf(fid, ['%s\t' strjoin(repelem({'%.9f'}, numel(genotypes), 1), '\t') '\n'],...
+        'FL', mat_sd(2,:));
+    fprintf(fid, [repelem('_', 90), '\n\n']);
+end
+fclose(fid);
+
 %% Create heatmaps
 % get color range
 tmp1 = [flux_av{:}];
@@ -104,13 +136,16 @@ for i=1:numel(plot_rxns)
     
     mat = sqrt(abs(mat));
     
-    heatmap(mat, 'GridVisible', 'off', 'CellLabelColor','none',...
+    heatmap(mat,...
+        'GridVisible', 'off',...
+        'CellLabelColor','none',...
         'Colormap', colormap_blue_red,...
         'ColorLimits', crange,...
         'XDisplayLabels', repmat({''}, size(mat,2), 1),...
         'YDisplayLabels', repmat({''}, size(mat,1), 1),...
         'fontsize',14,...
-        'colorbarvisible', 'off')
+        'colorbarvisible', 'off',...
+        'MissingDataColor', 'w')
     set(gcf, 'OuterPosition', [353.6667  265.0000  658.6666  434.0000])
     exportgraphics(gcf, [res_dir filesep 'heatmaps' filesep rxn_id '.png'])
 end
