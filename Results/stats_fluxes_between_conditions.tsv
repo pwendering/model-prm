@@ -1,0 +1,68 @@
+Reaction ID	Reaction Name	EC Number		Genotype			
+			Col-0	ggt1-1	ggt1-2	hpr1-1	hpr1-2
+RBO_h	RuBisCO	4.1.1.39	0	0	0	0	0
+
+PGP_h	PGCA phosphorylase	3.1.3.18	0	0	0	0	0
+
+GCAO_p	GCA oxidase	1.1.3.15	0	0	0	0	0
+
+CAT_p	Catalase	1.11.1.6	0	0	0	0	0
+
+GGAT_p	Glu:GLX aminotransferase	2.6.1.4	0	NaN	NaN	0	0
+
+GlyDH_m	Gly dehydrogenase	1.4.4.2	0	0	0	0	0
+
+AMT_m	Aminomethyltransferase	2.1.2.10	0	0	0	0	0
+
+DHLDH1_m	DHL dehydrogenase	1.8.1.4	0	0	0	0	0
+
+GlyHMT_m	Gly hydroxymethyltransferase	2.1.2.1	0	0	0	0	0
+
+SGAT_p	Ser:GLX aminotransferase	2.6.1.45	0	0	0	0.000154	0.000126
+
+GCEADH_p	GCEA dehydrogenase	1.1.1.29	0.000126	NaN	0	NaN	NaN
+
+MalDH1_p	Mal dehydrogenase	1.1.1.37	NaN	0	0	NaN	NaN
+
+GCEAK_h	GCEA kinase	2.7.1.31	0	0	0	0	0
+
+GCEADH_c	GCEA dehydrogenase		0	0	0	0.000154	0.000126
+
+DHLDH2_m	DHL dehydrogenase	1.8.1.4	0	0	0	0	0
+
+CitS_m	Cit synthase	2.3.3.1	0	0	0	0	0
+
+cACNDHA_m	Aconitase dehydration	4.2.1.3	0	0	0	0	0
+
+cACNHA_m	Aconitase hydration	4.2.1.3	0	0	0	0	0
+
+iCitDHNAD_m	iCit dehydrogenase	1.1.1.41	NaN	NaN	NaN	NaN	NaN
+
+KGDH_m	KG dehydrogenase	1.2.4.2	NaN	0	0.1868	NaN	NaN
+
+DHLST_m	DHL succinyltransferase	2.3.1.61	NaN	0	0.1868	NaN	NaN
+
+SCACoAL_m	SCA-CoA ligase	6.2.1.5	NaN	0	0.1868	NaN	NaN
+
+cplx2_m	SCA dehydrogenase (Q)	1.3.5.1	0	0	0	0	0
+
+FumHA_m	Fum hydratase	4.2.1.2	0	0	0	0	0
+
+MalDH1_m	Mal dehydrogenase	1.1.1.37	0.7872	0	0	0	0
+
+GlyHMT_c	Gly hydroxymethyltransferase	2.1.2.1	0	0	0	0	0
+
+GCEADH_h	GCEA dehydrogenase	1.1.1.29	0	0.3693	0.3693	0	0
+
+GGAT_h	Glu:GLX aminotransferase	2.6.1.4	0	0	0	0.2917	2.1e-05
+
+GCAO_h	GCA oxidase	1.1.3.15	0	0	0	0	0
+
+MalDH3_h	Mal dehydrogenase	1.1.1.82	0	0	0	0	0
+
+GluSFd_h	Glu synthase (FeS-Fd)	1.4.7.1	0	0	0	0	0
+
+GluSNAD_h	Glu synthase	1.4.1.14	0.000256	0	0	0	0
+
+GlnS_h	Gln synthetase	6.3.1.2	0	0	0	0	0
+

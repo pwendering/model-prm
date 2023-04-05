@@ -1,0 +1,166 @@
+Reaction ID/name/EC number	FL\CL	Col-0	ggt1-1	ggt1-2	hpr1-1	hpr1-2
+RBO_h	Col-0	1	0	0	0	0
+RuBisCO	ggt1-1	0	1	0	0	0
+4.1.1.39	ggt1-2	0	0	1	0	0
+	hpr1-1	0	0	0	1	0
+	hpr1-2	0	0	0	0	1
+PGP_h	Col-0	1	0	0	0	0
+PGCA phosphorylase	ggt1-1	0	1	0	0	0
+3.1.3.18	ggt1-2	0	0	1	0	0
+	hpr1-1	0	0	0	1	0
+	hpr1-2	0	0	0	0	1
+GCAO_p	Col-0	1	0	0	0	0
+GCA oxidase	ggt1-1	0	1	0	0	0
+1.1.3.15	ggt1-2	0	0	1	0	0
+	hpr1-1	0	0	0	1	0
+	hpr1-2	0	0	0	0	1
+CAT_p	Col-0	1	0	0	0	0
+Catalase	ggt1-1	0	1	0	0	0
+1.11.1.6	ggt1-2	0	0	1	0	0
+	hpr1-1	0	0	0	1	0
+	hpr1-2	0	0	0	0	1
+GGAT_p	Col-0	1	0	0	0	0
+Glu:GLX aminotransferase	ggt1-1	0	1	NaN	0	0
+2.6.1.4	ggt1-2	0	NaN	1	0	0
+	hpr1-1	0	0	0	1	0
+	hpr1-2	0	0	0	0	1
+GlyDH_m	Col-0	1	0	0	0	0
+Gly dehydrogenase	ggt1-1	0	1	0	0	0
+1.4.4.2	ggt1-2	0	0	1	0	0
+	hpr1-1	0	0	0	1	0
+	hpr1-2	0	0	0	0	1
+AMT_m	Col-0	1	0	0	0	0
+Aminomethyltransferase	ggt1-1	0	1	0	0	0
+2.1.2.10	ggt1-2	0	0	1	0	0
+	hpr1-1	0	0	0	1	0
+	hpr1-2	0	0	0	0	1
+DHLDH1_m	Col-0	1	0	0	0	0
+DHL dehydrogenase	ggt1-1	0	1	0	0	0
+1.8.1.4	ggt1-2	0	0	1	0	0
+	hpr1-1	0	0	0	1	0
+	hpr1-2	0	0	0	0	1
+GlyHMT_m	Col-0	1	0	0	0	0
+Gly hydroxymethyltransferase	ggt1-1	0	1	0	0	0
+2.1.2.1	ggt1-2	0	0	1	0	0
+	hpr1-1	0	0	0	1	0
+	hpr1-2	0	0	0	0	1
+SGAT_p	Col-0	1	0	0	0.7116	0.09962
+Ser:GLX aminotransferase	ggt1-1	0	1	0	0	0
+2.6.1.45	ggt1-2	0	0	1	0	0
+	hpr1-1	0	0	0	1	0.3608
+	hpr1-2	0	0	0	0.1228	1
+GCEADH_p	Col-0	1	0	0	0	0
+GCEA dehydrogenase	ggt1-1	0	1	NaN	NaN	NaN
+1.1.1.29	ggt1-2	0	0	1	NaN	NaN
+	hpr1-1	0	NaN	0	1	NaN
+	hpr1-2	0	NaN	0	NaN	1
+MalDH1_p	Col-0	1	0	0	NaN	NaN
+Mal dehydrogenase	ggt1-1	0	1	1.418	0	0
+1.1.1.37	ggt1-2	0	0	1	0	0
+	hpr1-1	NaN	0	0	1	NaN
+	hpr1-2	NaN	0	0	NaN	1
+GCEAK_h	Col-0	1	0	0	0	0
+GCEA kinase	ggt1-1	0	1	0	0	0
+2.7.1.31	ggt1-2	0	0	1	0	0
+	hpr1-1	0	0	0	1	0
+	hpr1-2	0	0	0	0.7198	1
+GCEADH_c	Col-0	1	0	0	0.7116	0.09962
+GCEA dehydrogenase	ggt1-1	0	1	0	0	0
+	ggt1-2	0	0	1	0	0
+	hpr1-1	0	0	0	1	0.3608
+	hpr1-2	0	0	0	0.1228	1
+DHLDH2_m	Col-0	1	0	0	0	0
+DHL dehydrogenase	ggt1-1	0	1	0	0	0
+1.8.1.4	ggt1-2	0	0	1	0	0
+	hpr1-1	0	0	0	1	0
+	hpr1-2	0	0	0	0	1
+CitS_m	Col-0	1	0	0	0	0
+Cit synthase	ggt1-1	0	1	0	0	0
+2.3.3.1	ggt1-2	0	0	1	0	0
+	hpr1-1	0	0	0	1	0
+	hpr1-2	0	0	0	0	1
+cACNDHA_m	Col-0	1	0	0	0	0
+Aconitase dehydration	ggt1-1	0	1	0	0	0
+4.2.1.3	ggt1-2	0	0.004215	1	0	0
+	hpr1-1	0	0.06747	3.1e-05	1	0
+	hpr1-2	0	0.06747	3.1e-05	NaN	1
+cACNHA_m	Col-0	1	0	0	0	0
+Aconitase hydration	ggt1-1	0.000802	1	0	0	0
+4.2.1.3	ggt1-2	0	0	1	0	0
+	hpr1-1	0	0	0	1	0
+	hpr1-2	0.03169	0	0	0	1
+iCitDHNAD_m	Col-0	1	NaN	NaN	NaN	NaN
+iCit dehydrogenase	ggt1-1	NaN	1	NaN	NaN	NaN
+1.1.1.41	ggt1-2	NaN	NaN	1	NaN	NaN
+	hpr1-1	NaN	NaN	NaN	1	NaN
+	hpr1-2	NaN	NaN	NaN	NaN	1
+KGDH_m	Col-0	1	NaN	NaN	NaN	NaN
+KG dehydrogenase	ggt1-1	0	1	NaN	NaN	NaN
+1.2.4.2	ggt1-2	0.2286	0	1	NaN	NaN
+	hpr1-1	NaN	0	0.2286	1	NaN
+	hpr1-2	NaN	0	0.2286	NaN	1
+DHLST_m	Col-0	1	NaN	NaN	NaN	NaN
+DHL succinyltransferase	ggt1-1	0	1	NaN	NaN	NaN
+2.3.1.61	ggt1-2	0.2286	0	1	NaN	NaN
+	hpr1-1	NaN	0	0.2286	1	NaN
+	hpr1-2	NaN	0	0.2286	NaN	1
+SCACoAL_m	Col-0	1	NaN	NaN	NaN	NaN
+SCA-CoA ligase	ggt1-1	0	1	NaN	NaN	NaN
+6.2.1.5	ggt1-2	0.2286	0	1	NaN	NaN
+	hpr1-1	NaN	0	0.2286	1	NaN
+	hpr1-2	NaN	0	0.2286	NaN	1
+cplx2_m	Col-0	1	0	0	0	0
+SCA dehydrogenase (Q)	ggt1-1	0	1	0	0	0
+1.3.5.1	ggt1-2	0	0	1	0	0
+	hpr1-1	0	0	0	1	0
+	hpr1-2	0	0	0	0	1
+FumHA_m	Col-0	1	0	0	0	0
+Fum hydratase	ggt1-1	0	1	0	0	0
+4.2.1.2	ggt1-2	0	0	1	0	0
+	hpr1-1	0	0	0	1	0
+	hpr1-2	0	0	0	0	1
+MalDH1_m	Col-0	1	0	0	0	0
+Mal dehydrogenase	ggt1-1	0	1	0.2484	0	0
+1.1.1.37	ggt1-2	0	0	1	0	0
+	hpr1-1	0	0	0	1	0
+	hpr1-2	0	0	0	0	1
+GlyHMT_c	Col-0	1	0	0	0	0
+Gly hydroxymethyltransferase	ggt1-1	0	1	0	0	0
+2.1.2.1	ggt1-2	0	0	1	0	0
+	hpr1-1	0	0	0	1	0
+	hpr1-2	0	0	0	0	1
+GCEADH_h	Col-0	1	0	0	0	0
+GCEA dehydrogenase	ggt1-1	0	1	1.418	0	0
+1.1.1.29	ggt1-2	0	NaN	1	0	0
+	hpr1-1	0	0	0	1	0
+	hpr1-2	0	0	0	0.6537	1
+GGAT_h	Col-0	1	0	0	0	0
+Glu:GLX aminotransferase	ggt1-1	0	1	0	0	0
+2.6.1.4	ggt1-2	0	0	1	0	0
+	hpr1-1	0	0	0	1	2e-06
+	hpr1-2	0	0	0	0	1
+GCAO_h	Col-0	1	0	0	0	0
+GCA oxidase	ggt1-1	0	1	0	0	0
+1.1.3.15	ggt1-2	0	0	1	0	0
+	hpr1-1	0	0	0	1	0
+	hpr1-2	0	0	0	0	1
+MalDH3_h	Col-0	1	0	0	0	0
+Mal dehydrogenase	ggt1-1	0	1	0	0	0
+1.1.1.82	ggt1-2	0	0	1	0	0
+	hpr1-1	1.5e-05	0	0	1	0
+	hpr1-2	0	0	0	0.002433	1
+GluSFd_h	Col-0	1	1.297	0.6508	0	0
+Glu synthase (FeS-Fd)	ggt1-1	0	1	0.05055	0	0
+1.4.7.1	ggt1-2	0	0	1	0	0
+	hpr1-1	1.106	0	0	1	0
+	hpr1-2	0.05232	0	0	0.7971	1
+GluSNAD_h	Col-0	1	0	0	0	0
+Glu synthase	ggt1-1	0	1	0	0	0
+1.4.1.14	ggt1-2	0	0	1	0	0
+	hpr1-1	0	0	0	1	0.01226
+	hpr1-2	0	0	0	1.014	1
+GlnS_h	Col-0	1	0	0	0	0
+Gln synthetase	ggt1-1	0	1	0	0	0
+6.3.1.2	ggt1-2	0	0	1	0	0
+	hpr1-1	0	0	0	1	0
+	hpr1-2	0	0	0	0.001006	1
