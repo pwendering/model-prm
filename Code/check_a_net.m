@@ -8,7 +8,8 @@ res_dir = '../Results';
 model_file = fullfile(data_dir,'AraCore-updated-rev.mat');
 load(model_file);
 
-add_hpr2_reaction
+% add HPR2 reaction (cytosol) and update gene association 
+model = updateModelHprGgt(model);
 
 v_o_rxn = 'RBO_h';
 v_o_idx = findRxnIDs(model, v_o_rxn);
@@ -88,18 +89,18 @@ a_rel_pred_sd = a_net_sd{1} / max(a_net_mean{1});
 
 line([0 1.2],...
     [0 1.2], 'Color', [.5 .5 .5])
-for i=1:numel(genotypes)
-    h(i) = errorbar(a_rel_exp(i), a_rel_pred(i), a_rel_pred_sd(i),...
+for i=2:numel(genotypes)
+    errorbar(a_rel_exp(i), a_rel_pred(i), a_rel_pred_sd(i),...
         a_rel_pred_sd(i), a_rel_exp_sd(i), a_rel_exp_sd(i),...
-        '.', 'Color', colors(i,:), 'MarkerSize', 20);
+        '.', 'Color', colors(i,:), 'MarkerSize', 20)
 end
 
-xlabel('A_{net} experimental (scaled)')
-ylabel('A_{net} predicted (scaled)')
+xlabel('{\it A} ratio to Col-0 (experimental)')
+ylabel('{\it A} ratio to Col-0 (predicted)')
 disp('Spearman Correlation (ML)')
 rho_s = corr(a_net_ml.mean_A,  a_net_mean{1}, 'type', 'Spearman');
 disp(rho_s)
-text(0.05, 0.93, 'C', 'Units', 'normalized', 'FontSize', 14)
+text(0.05, 0.93, 'c', 'Units', 'normalized', 'FontSize', 14)
 set(gca, 'FontSize', 14, 'XLim', [.4 1.1], 'YLim', [.4 1.1], 'Box', 'on',...
     'LineWidth', 1.3)
 
@@ -113,19 +114,20 @@ a_rel_pred_sd = a_net_sd{2} / max(a_net_mean{2});
 
 line([0 1.2],...
     [0 1.2], 'Color', [.5 .5 .5])
-for i=1:numel(genotypes)
-    h(i) = errorbar(a_rel_exp(i), a_rel_pred(i), a_rel_pred_sd(i), a_rel_pred_sd(i), a_rel_exp_sd(i),a_rel_exp_sd(i),...
+for i=2:numel(genotypes)
+    h(i-1) = errorbar(a_rel_exp(i), a_rel_pred(i), a_rel_pred_sd(i),...
+        a_rel_pred_sd(i), a_rel_exp_sd(i),a_rel_exp_sd(i),...
         '.', 'Color', colors(i,:), 'MarkerSize', 20);
 end
 
-legend(h, genotypes, 'Box', 'off', 'Location', 'southeast')
+legend(h, genotypes(2:end), 'Box', 'off', 'Location', 'southeast')
 
-xlabel('A_{net} experimental (scaled)')
+xlabel('{\it A} ratio to Col-0 (experimental)')
 
 disp('Spearman Correlation (FL)')
 rho_s = corr(a_net_fl.mean_A,  a_net_mean{2}, 'type', 'Spearman');
 disp(rho_s)
-text(0.05, 0.93, 'D', 'Units', 'normalized', 'FontSize', 14)
+text(0.05, 0.93, 'd', 'Units', 'normalized', 'FontSize', 14)
 set(gca, 'FontSize', 14, 'XLim', [.4 1.1], 'YLim', [.4 1.1], 'Box', 'on',...
     'LineWidth', 1.3)
 set(gcf, 'OuterPosition', [134.3333  161.0000  935.3333  475.3333])

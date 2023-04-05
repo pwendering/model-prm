@@ -9,7 +9,8 @@ res_dir = '../Results';
 model_file = fullfile(data_dir,'AraCore-updated-rev.mat');
 load(model_file);
 
-add_hpr2_reaction
+% add HPR2 reaction (cytosol) and update gene association 
+model = updateModelHprGgt(model);
 
 bio_rxn_id = 'Bio_opt';
 bio_rxn_idx = findRxnIDs(model, bio_rxn_id);
@@ -156,7 +157,7 @@ end
 
 xlabel('RGR ratio to Col-0 (experimental)', 'FontSize', 14)
 ylabel('RGR ratio to Col-0 (predicted)', 'FontSize', 14)
-text(0.05, 0.93, 'A', 'Units', 'normalized', 'FontSize', 14)
+text(0.05, 0.93, 'a', 'Units', 'normalized', 'FontSize', 14)
 set(gca, 'FontSize', 14, 'XLim', [.4 1.1], 'YLim', [.4 1.1], 'Box', 'on',...
     'LineWidth', 1.3)
 
@@ -170,7 +171,7 @@ for i=1:numel(mutants)
 end
 xlabel('RGR ratio to Col-0 (experimental)', 'FontSize', 14)
 % legend(h, mutants, 'Location', 'southeast', 'box', 'off')
-text(0.05, 0.93, 'B', 'Units', 'normalized', 'FontSize', 14)
+text(0.05, 0.93, 'b', 'Units', 'normalized', 'FontSize', 14)
 set(gca, 'FontSize', 14, 'XLim', [.4 1.1], 'YLim', [.4 1.1], 'Box', 'on',...
     'LineWidth', 1.3)
 set(gcf, 'OuterPosition', [134.3333  161.0000  935.3333  475.3333])
