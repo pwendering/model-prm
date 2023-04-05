@@ -1,0 +1,10 @@
+genotype	weight_ug
+Col-0	19.50
+ggt2	16.92
+ggt1-1	13.71
+ggt1-2	17.86
+hpr1-1	14.29
+hpr1-2	13.04
+gldt1-1	12.18
+PGLP	14.20
+PsL	16.56
