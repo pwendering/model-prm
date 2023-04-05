@@ -11,6 +11,11 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 clear;clc
 
+% set paths for COBRA toolbox, matTFA toolbox, and the IBM CPLEX solver
+COBRA_PATH = '~/cobratoolbox';
+CPLEX_PATH = '~/bin/ibm/ILOG/CPLEX_Studio129/cplex/matlab/x86-64_linux/';
+MATTFA_PATH = '../../matTFA';
+
 % number of workers for parallel computing
 N_CPU = 1; %40;
 N_SAMPLES = 1000;
@@ -35,22 +40,19 @@ initCobraToolbox(false)
 
 % fix setfield error
 curr_path = pwd;
-cd ~/cobratoolbox/external/analysis/PolytopeSamplerMatlab/code/utils
+cd(fullfile(COBRA_PATH, 'external', 'analysis', 'PolytopeSamplerMatlab', 'code', 'utils'))
 system('mv setfield.m Setfield.m');
 cd(curr_path)
 
 % CPLEX path and COBRA solver
-cplexPath = '~/bin/ibm/ILOG/CPLEX_Studio129/cplex/matlab/x86-64_linux/';
-% cplexPath = fullfile('C:/Program Files/IBM/ILOG/CPLEX_Studio129/cplex/matlab/x64_win64/');
-addpath(genpath(cplexPath))
+addpath(genpath(CPLEX_PATH))
 changeCobraSolver('ibm_cplex', 'all');
 
-% path to matTFA toolbox
-mattfa_path = fullfile('..', '..', 'matTFA');
-addpath(genpath(fullfile(mattfa_path, 'matTFA')), '-end')
-addpath(genpath(fullfile(mattfa_path, 'thermoDatabases')))
-addpath(genpath(fullfile(mattfa_path, 'models')))
-addpath(genpath(fullfile(mattfa_path, 'plotting')))
+% add matTFA toolbox functions to MATLAB path
+addpath(genpath(fullfile(MATTFA_PATH, 'matTFA')), '-end')
+addpath(genpath(fullfile(MATTFA_PATH, 'thermoDatabases')))
+addpath(genpath(fullfile(MATTFA_PATH, 'models')))
+addpath(genpath(fullfile(MATTFA_PATH, 'plotting')))
 
 %% Prepare model for TFA
 % metabolic model (updated metabolite names and added inchi keys)
@@ -60,7 +62,7 @@ load(fullfile(data_dir, 'AraCore-updated-rev.mat'));
 model = updateModelHprGgt(model);
 
 % load small E. coli model
-tmp = load(fullfile(mattfa_path, 'models', 'smallEcoli.mat'));
+tmp = load(fullfile(MATTFA_PATH, 'models', 'smallEcoli.mat'));
 eco_model = tmp.smallEcoli;
 
 % change compartment symbol for Peroxisome from p to x
