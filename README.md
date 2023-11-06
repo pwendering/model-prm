@@ -1,7 +1,7 @@
 # Constraint-based modeling of photorespiratory mutants using metabolomics in TMFA
 This repository contains all code that has been generated for the constraint-based modeling of photorespiratory mutants in the following publication:
 
-**REFERENCE**
+von Bismarck, T., Wendering, P., Perez de Souza, L. et al. Growth in fluctuating light buffers plants against photorespiratory perturbations. Nat Commun 14, 7052 (2023). [https://doi.org/10.1038/s41467-023-42648-x](https://doi.org/10.1038/s41467-023-42648-x)
 
 ## Prerequisites
 * MATLAB (tested with releases 2020a and 2020b)
